@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff
+package com.banya.pwooda
 
 import org.junit.Test
 

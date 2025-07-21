@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.banya.bgf_aistaff"
+    namespace = "com.banya.pwooda"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.banya.bgf_aistaff"
+        applicationId = "com.banya.pwooda"
         minSdk = 35
         targetSdk = 35
         versionCode = 1

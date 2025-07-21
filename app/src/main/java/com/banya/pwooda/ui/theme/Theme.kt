@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff.ui.theme
+package com.banya.pwooda.ui.theme
 
 import android.app.Activity
 import android.os.Build
@@ -34,7 +34,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun BGF_AIStaffTheme(
+fun PwoodaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,

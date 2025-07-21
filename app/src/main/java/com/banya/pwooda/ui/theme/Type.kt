@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff.ui.theme
+package com.banya.pwooda.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

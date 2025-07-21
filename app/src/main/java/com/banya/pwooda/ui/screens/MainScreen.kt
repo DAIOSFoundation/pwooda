@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff.ui.screens
+package com.banya.pwooda.ui.screens
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -30,11 +30,11 @@ import java.util.*
 import android.util.Log
 import android.content.Context
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.banya.bgf_aistaff.R
-import com.banya.bgf_aistaff.ui.components.CameraComponent
-import com.banya.bgf_aistaff.ui.components.SpeechRecognitionComponent
-import com.banya.bgf_aistaff.viewmodel.GeminiState
-import com.banya.bgf_aistaff.viewmodel.GeminiViewModel
+import com.banya.pwooda.R
+import com.banya.pwooda.ui.components.CameraComponent
+import com.banya.pwooda.ui.components.SpeechRecognitionComponent
+import com.banya.pwooda.viewmodel.GeminiState
+import com.banya.pwooda.viewmodel.GeminiViewModel
 import kotlinx.coroutines.launch
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.draw.clip

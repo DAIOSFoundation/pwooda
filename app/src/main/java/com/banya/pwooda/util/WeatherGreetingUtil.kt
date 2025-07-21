@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff.util
+package com.banya.pwooda.util
 
 import kotlin.random.Random
 

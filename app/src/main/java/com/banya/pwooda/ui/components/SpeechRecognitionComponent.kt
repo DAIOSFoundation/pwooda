@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff.ui.components
+package com.banya.pwooda.ui.components
 
 import android.content.Context
 import android.content.Intent

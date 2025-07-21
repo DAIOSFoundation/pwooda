@@ -1,14 +1,14 @@
-package com.banya.bgf_aistaff.viewmodel
+package com.banya.pwooda.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.banya.bgf_aistaff.MainActivity
-import com.banya.bgf_aistaff.service.GoogleCloudTTSService
-import com.banya.bgf_aistaff.service.PaymentService
-import com.banya.bgf_aistaff.service.ProductDataService
-import com.banya.bgf_aistaff.service.CustomerDataService
+import com.banya.pwooda.MainActivity
+import com.banya.pwooda.service.GoogleCloudTTSService
+import com.banya.pwooda.service.PaymentService
+import com.banya.pwooda.service.ProductDataService
+import com.banya.pwooda.service.CustomerDataService
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,10 +35,10 @@ data class GeminiState(
     val showPaymentButton: Boolean = false,
     val showQRCode: Boolean = false,
     val qrCodeBitmap: android.graphics.Bitmap? = null,
-    val currentProduct: com.banya.bgf_aistaff.data.Product? = null,
+    val currentProduct: com.banya.pwooda.data.Product? = null,
     val showProductImage: Boolean = false,
     val productImageResourceName: String? = null,
-    val relatedNewProduct: com.banya.bgf_aistaff.data.Product? = null,
+    val relatedNewProduct: com.banya.pwooda.data.Product? = null,
     val showNewProductImage: Boolean = false,
     val newProductImageResourceName: String? = null,
     val chatHistory: List<ChatMessage> = emptyList(),
@@ -93,7 +93,7 @@ class GeminiViewModel : ViewModel() {
     }
 
     // 질문에서 고객 정보 추출
-    private fun getCustomerInfoFromQuestion(question: String): com.banya.bgf_aistaff.data.Customer? {
+    private fun getCustomerInfoFromQuestion(question: String): com.banya.pwooda.data.Customer? {
         val customers = customerDataService?.loadCustomers() ?: emptyList()
 
         // 이름으로 고객 찾기
@@ -692,7 +692,7 @@ class GeminiViewModel : ViewModel() {
         android.util.Log.d("GeminiViewModel", "챗 버블 숨김 및 상태 초기화 완료")
     }
 
-    private suspend fun recognizeProductFromResponse(response: String): com.banya.bgf_aistaff.data.Product? {
+    private suspend fun recognizeProductFromResponse(response: String): com.banya.pwooda.data.Product? {
         val products = productDataService?.loadProducts() ?: emptyList()
 
         // 기존 제품들 먼저 찾기
@@ -703,7 +703,7 @@ class GeminiViewModel : ViewModel() {
         return recognizedProduct
     }
 
-    private suspend fun getRelatedNewProduct(recognizedProduct: com.banya.bgf_aistaff.data.Product?): com.banya.bgf_aistaff.data.Product? {
+    private suspend fun getRelatedNewProduct(recognizedProduct: com.banya.pwooda.data.Product?): com.banya.pwooda.data.Product? {
         if (recognizedProduct == null) return null
 
         val products = productDataService?.loadProducts() ?: emptyList()

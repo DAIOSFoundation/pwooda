@@ -18,14 +18,14 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BGF_AIStaff"
+        android:theme="@style/Theme.Pwooda"
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.BGF_AIStaff">
+            android:theme="@style/Theme.Pwooda">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff.data
+package com.banya.pwooda.data
 
 data class Product(
     val id: String,

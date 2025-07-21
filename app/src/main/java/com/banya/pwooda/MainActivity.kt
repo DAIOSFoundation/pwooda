@@ -1,4 +1,4 @@
-package com.banya.bgf_aistaff
+package com.banya.pwooda
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -18,12 +18,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.banya.bgf_aistaff.ui.theme.BGF_AIStaffTheme
-import com.banya.bgf_aistaff.ui.screens.MainScreen
-import com.banya.bgf_aistaff.viewmodel.GeminiViewModel
-import com.banya.bgf_aistaff.service.FaceDetectionService
-import com.banya.bgf_aistaff.service.GoogleCloudTTSService
-import com.banya.bgf_aistaff.util.WeatherGreetingUtil
+import com.banya.pwooda.ui.theme.PwoodaTheme
+import com.banya.pwooda.ui.screens.MainScreen
+import com.banya.pwooda.viewmodel.GeminiViewModel
+import com.banya.pwooda.service.FaceDetectionService
+import com.banya.pwooda.service.GoogleCloudTTSService
+import com.banya.pwooda.util.WeatherGreetingUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
         }
         
         setContent {
-            BGF_AIStaffTheme {
+            PwoodaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

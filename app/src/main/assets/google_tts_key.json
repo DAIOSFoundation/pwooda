@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "theta-album-463709-k6",
+  "private_key_id": "047e39268940b68f29a122ffcfe6bbda63205738",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC/mJQKlG8Gb5Bj\nczhsC3RaHy+iegAw/F+Av2nNMrWMgkvhP330rDcc+Y0KysFBfIu31Nlj7wGhbewJ\n1XbZh0x66nihLRcPZOZuST1C176s3R7yWwUtQvv1SYt/uyl7b6yzZjPrdxpebx6d\nG9xjYetUGFKqoGdv5gVgutu0DgI2nLnbRS6yAXWLgKJ7pyLBV3MP3eJC3P/YqWZz\nlA3uPFRkA4B/oYPnI1eED2SM+CS8YEAfu4+Df6Xxnihj5GMEBvuqjgaCTaOwHfTF\nuov+vqV644ATNVC7GB2K1TSB2Ak9Bty9peUIcOsPXzlTWbUELbHvDnHKorfu6zC7\nlDimoN33AgMBAAECggEARjnxTV1xwnyjAmjJrgSWza+voJCyQEJI6SJ/78gd9lYN\n5Q6GJuf2vYaU1XdS1aOGfMemNPR2dwqY4VPeX8YxWL5Xn9AsqyZTNepfa4Azsh3M\niY2mPJxYSOR/nr5l6ooY1Zro/e4meqWlJXYAVmceQDE4H7VypHe90eI7xGf8FLLD\n41QHI6aLjwXvcGsbPiMDTIBsEBPkSKsH0n1T9ULLncbefUQya63Cv1lLzFIuwWU/\noNdv7ML6aRqN+BvqJp9AAlfVMIKUuV68jhIbN4Mqklz2vW5loyMY5dtoH4zl4Mse\nrqQNXT/JZeFA7wKAEpxR/EZYRFCbbjWH4nD72kt1kQKBgQDq+w5/t9xe0YSDBTHS\nE6s37Ou+RCS2K8FMKQbZ23KqTgDnP5wTsRisY4/s/38CZT6CXr5vZb0DsAQ1a9H8\nJxbnLvIax3QiQUZIfrm7ZoLCBBaH1YeBmsJmnR+VSoTvEt2eA+7R3VTqCt8ZUjzQ\nC9UwQuvZUy4Jg2MgkGP+3stdkQKBgQDQvAiY3fXNCCOPWneDnenbQnOHK49ol1E6\n3qxcLNjXaPGqvgdvPhzNZim9VDD9bbgyvHFcHRx6EUAZIAbTTd32JXgg577FDC9C\nYS5A84+2Edsl3B9JDdY+j+xuhNQLIB3mmVS7HbY3XJ4FLXU1hq2Tco0bkvqo9y7M\nUgj015DfBwKBgCWXC/a6fvJcKgqbpiCpLNbBe+TwGb9auI1qcsIfLPS5jcNwlZNA\n3WWWd8u+A59qetl4Npaze80/Ny0klm70AeHxzKEkDxv7vTaTrzqfZ4OKC+Cm9Apz\nq22m7QqA5UsphXJlxqqj8ZWPL6lpUnklq3ERA5G8kLzM2+q1rolzMq1BAoGARB04\nCPpVXaTMRdlVqsN7LquOm4thbtYCEd3cDPAtio2aXwdH0ctJBtXRxRCWM/z74MKR\nk2eEhWjfq9NBpu6AAfTUMJivLgn92gFwYI2aVeWZx87+/o3fXecFVkNOFptSZo+e\nkLjvXz1/61ycJO1f8v+sgFUEKuMOiGo0tgEqKz0CgYEAlwsKxAtDQF5hKr2pp1ZN\nwxewnm/9RdaEf+StmTdm2vb9GmxkG7WiJc6QW9CilEhaMSHASMhcPvCxhJdyyXmE\nyJ2doGAjkKkjzRxNni7D4xkgxk2fRW5ArCSHJ7dSvRrjeGi33dHqL/+6KrDqhXV+\noVnjbBEtdCD/znmUn1Xu4No=\n-----END PRIVATE KEY-----\n",
+  "client_email": "tony-google-tts@theta-album-463709-k6.iam.gserviceaccount.com",
+  "client_id": "110557547234136767212",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/tony-google-tts%40theta-album-463709-k6.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

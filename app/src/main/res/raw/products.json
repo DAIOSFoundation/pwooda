@@ -1,0 +1,854 @@
+{
+  "products": [
+    {
+      "id": "tp001",
+      "name": "두루마리 화장지",
+      "category": "생활용품",
+      "price": 2500,
+      "originalPrice": 3000,
+      "brand": "크리넥스",
+      "description": "부드럽고 흡수력이 좋은 프리미엄 화장지",
+      "features": [
+        "3겹 구조로 부드러운 사용감",
+        "강한 흡수력",
+        "물에 잘 녹는 친환경 소재",
+        "1롤당 200매"
+      ],
+      "ingredients": [
+        "펄프",
+        "물",
+        "친환경 접착제"
+      ],
+      "nutrition": null,
+      "taste": null,
+      "reputation": {
+        "overallRating": 4.2,
+        "reviewCount": 1250,
+        "positiveReviews": 980,
+        "negativeReviews": 45,
+        "neutralReviews": 225,
+        "reputationScore": "좋음",
+        "marketPosition": "인기 상품",
+        "customerSatisfaction": "만족",
+        "weeklySales": 850,
+        "salesRank": "인기 상품",
+        "detailedReviews": [
+          "부드러워서 아이들도 안전하게 사용할 수 있어요",
+          "흡수력이 정말 좋아서 만족합니다",
+          "환경 친화적이라서 더 좋아요",
+          "가격 대비 품질이 훌륭해요",
+          "가족 모두가 만족하는 제품입니다"
+        ],
+        "pros": [
+          "부드러운 사용감",
+          "강한 흡수력",
+          "환경 친화적 소재",
+          "가격 대비 우수한 품질",
+          "가정용으로 적합"
+        ],
+        "cons": [
+          "일부 고객이 두께가 얇다고 느낌",
+          "가끔 재고 부족 현상"
+        ]
+      },
+      "events": [
+        {
+          "type": "할인",
+          "description": "17% 할인 행사",
+          "discountRate": 17,
+          "validUntil": "2024년 12월 31일"
+        }
+      ],
+      "recommendations": [
+        "가정용으로 적합",
+        "화장실, 주방 등 다목적 사용",
+        "환경 친화적 소재"
+      ],
+      "imageResourceName": null,
+      "imagePath": null,
+      "stockStatus": "재고 있음"
+    },
+    {
+      "id": "sn001",
+      "name": "허니버터칩",
+      "category": "과자/스낵",
+      "price": 1800,
+      "originalPrice": null,
+      "brand": "해태",
+      "description": "달콤한 꿀과 고소한 버터의 완벽한 조화",
+      "features": [
+        "천연 꿀 함유",
+        "고소한 버터 풍미",
+        "바삭한 식감",
+        "개별 포장으로 신선도 유지"
+      ],
+      "ingredients": [
+        "감자전분",
+        "식물성유지",
+        "꿀",
+        "버터",
+        "소금",
+        "설탕",
+        "향료"
+      ],
+      "nutrition": {
+        "calories": 140,
+        "protein": 1.0,
+        "fat": 7.0,
+        "carbohydrates": 18.0,
+        "sodium": 180,
+        "sugar": 2.0,
+        "servingSize": "30g (1봉지)"
+      },
+      "taste": {
+        "rating": 4.3,
+        "taste": "달콤하고 고소한 맛",
+        "spiciness": 1,
+        "popularity": "매우 인기",
+        "customerReviews": [
+          "술안주로 완벽해요!",
+          "달콤하고 고소해서 계속 먹게 돼요",
+          "아이들도 좋아하는 맛"
+        ]
+      },
+      "reputation": {
+        "overallRating": 4.5,
+        "reviewCount": 3200,
+        "positiveReviews": 2800,
+        "negativeReviews": 120,
+        "neutralReviews": 280,
+        "reputationScore": "매우 좋음",
+        "marketPosition": "시장 선도",
+        "customerSatisfaction": "매우 만족",
+        "weeklySales": 2500,
+        "salesRank": "베스트셀러",
+        "detailedReviews": [
+          "술안주로는 최고! 달콤하고 고소해서 계속 먹게 돼요",
+          "아이들도 너무 좋아해요. 영화관에서 먹기 딱이에요",
+          "가격 대비 양이 많아서 만족합니다",
+          "달콤한 맛이 중독적이에요. 한 번 먹으면 멈출 수 없어요",
+          "포장이 깔끔하고 개별 포장이라 편리해요"
+        ],
+        "pros": [
+          "달콤하고 고소한 맛",
+          "술안주로 최적",
+          "아이들도 좋아하는 맛",
+          "가격 대비 양이 많음",
+          "개별 포장으로 편리"
+        ],
+        "cons": [
+          "칼로리가 높음",
+          "한 번 먹으면 멈추기 어려움",
+          "일부 고객이 너무 달다고 느낌"
+        ]
+      },
+      "events": [
+        {
+          "type": "증정",
+          "description": "2+1 행사 (2개 구매시 1개 증정)",
+          "discountRate": null,
+          "validUntil": "2024년 11월 30일"
+        }
+      ],
+      "recommendations": [
+        "술안주로 인기",
+        "영화관 간식으로 추천",
+        "아이들 간식으로 적합"
+      ],
+      "imageResourceName": "허니버터칩",
+      "imagePath": "app/src/main/res/drawable/honey_butter_chip.png",
+      "stockStatus": "재고 있음"
+    },
+    {
+      "id": "sn002",
+      "name": "허니버터칩 캐슬",
+      "category": "과자/스낵",
+      "price": 2500,
+      "originalPrice": null,
+      "brand": "해태",
+      "description": "허니버터칩의 프리미엄 버전! 캐슬 모양의 특별한 디자인과 더욱 진한 허니버터 맛으로 신제품 런칭 행사 중입니다.",
+      "features": [
+        "캐슬 모양의 특별한 디자인",
+        "더욱 진한 허니버터 맛",
+        "프리미엄 감자칩",
+        "신제품 런칭 한정판",
+        "고급스러운 포장"
+      ],
+      "ingredients": [
+        "프리미엄 감자전분",
+        "식물성유지",
+        "천연 꿀",
+        "버터",
+        "소금",
+        "설탕",
+        "천연향료"
+      ],
+      "nutrition": {
+        "calories": 160,
+        "protein": 1.5,
+        "fat": 8.0,
+        "carbohydrates": 20.0,
+        "sodium": 150,
+        "sugar": 2.5,
+        "servingSize": "35g (1봉지)"
+      },
+      "taste": {
+        "rating": 4.7,
+        "taste": "진한 허니버터 맛",
+        "spiciness": 1,
+        "popularity": "신제품 인기",
+        "customerReviews": [
+          "캐슬 모양이 너무 귀여워요!",
+          "기존 허니버터칩보다 더 진한 맛이에요",
+          "신제품이라서 특별한 느낌이에요"
+        ]
+      },
+      "reputation": {
+        "overallRating": 4.8,
+        "reviewCount": 850,
+        "positiveReviews": 780,
+        "negativeReviews": 25,
+        "neutralReviews": 45,
+        "reputationScore": "매우 좋음",
+        "marketPosition": "신제품 인기",
+        "customerSatisfaction": "매우 만족",
+        "weeklySales": 1200,
+        "salesRank": "베스트셀러",
+        "detailedReviews": [
+          "캐슬 모양이 너무 귀여워요! 선물용으로 완벽해요",
+          "기존 허니버터칩보다 더 진한 맛이에요. 프리미엄 느낌이 나요",
+          "신제품이라서 특별한 느낌이에요. 포장도 고급스러워요",
+          "가격이 조금 비싸지만 맛과 디자인이 훌륭해요",
+          "허니버터칩 애호가라면 꼭 먹어봐야 할 제품이에요"
+        ],
+        "pros": [
+          "특별한 캐슬 모양 디자인",
+          "기존 제품보다 진한 맛",
+          "고급스러운 포장",
+          "선물용으로 적합",
+          "신제품 한정판"
+        ],
+        "cons": [
+          "가격이 기존 제품보다 높음",
+          "한정판이라 재고가 부족할 수 있음",
+          "일부 고객이 너무 달다고 느낌"
+        ]
+      },
+      "events": [
+        {
+          "type": "신제품 런칭",
+          "description": "신제품 런칭 기념 20% 할인 + 사은품 증정",
+          "discountRate": 20,
+          "validUntil": "2024년 12월 31일"
+        }
+      ],
+      "recommendations": [
+        "신제품 체험을 원하는 분",
+        "특별한 선물용으로 추천",
+        "허니버터칩 애호가에게 필수"
+      ],
+      "imageResourceName": "허니버터칩",
+      "imagePath": "drawable/honey_butter_chip.png",
+      "stockStatus": "재고 있음"
+    },
+    {
+      "id": "gm001",
+      "name": "자일리톨 껌",
+      "category": "껌/캔디",
+      "price": 1200,
+      "originalPrice": null,
+      "brand": "롯데",
+      "description": "치아 건강에 좋은 자일리톨 함유 무설탕 껌",
+      "features": [
+        "자일리톨 100% 함유",
+        "무설탕",
+        "치아 건강 증진",
+        "상쾌한 민트향",
+        "장시간 씹어도 단맛 유지"
+      ],
+      "ingredients": [
+        "자일리톨",
+        "껌베이스",
+        "글리세린",
+        "레시틴",
+        "천연향료",
+        "색소"
+      ],
+      "nutrition": {
+        "calories": 5,
+        "protein": 0.0,
+        "fat": 0.0,
+        "carbohydrates": 1.0,
+        "sodium": 0,
+        "sugar": 0.0,
+        "servingSize": "1개 (2.5g)"
+      },
+      "taste": {
+        "rating": 4.1,
+        "taste": "상쾌한 민트향",
+        "spiciness": 1,
+        "popularity": "인기",
+        "customerReviews": [
+          "입냄새 제거에 효과적이에요",
+          "민트향이 상쾌해요",
+          "치아 건강에 좋은 것 같아요"
+        ]
+      },
+      "reputation": {
+        "overallRating": 4.1,
+        "reviewCount": 2100,
+        "positiveReviews": 1700,
+        "negativeReviews": 150,
+        "neutralReviews": 250,
+        "reputationScore": "좋음",
+        "marketPosition": "인기 상품",
+        "customerSatisfaction": "만족",
+        "weeklySales": 1800,
+        "salesRank": "인기 상품",
+        "detailedReviews": [
+          "입냄새 제거에 정말 효과적이에요. 회사에서도 편하게 사용할 수 있어요",
+          "민트향이 상쾌하고 치아 건강에도 좋은 것 같아요",
+          "무설탕이라 다이어트 중에도 안심하고 먹을 수 있어요",
+          "장시간 씹어도 단맛이 유지되어서 만족해요",
+          "치아 건강에 좋다는 점이 가장 마음에 들어요"
+        ],
+        "pros": [
+          "치아 건강에 좋음",
+          "입냄새 제거 효과",
+          "무설탕",
+          "상쾌한 민트향",
+          "장시간 단맛 유지"
+        ],
+        "cons": [
+          "일부 고객이 맛이 약하다고 느낌",
+          "가격이 조금 비쌈",
+          "민트향이 강하다고 느끼는 고객 있음"
+        ]
+      },
+      "events": [
+        {
+          "type": "이벤트",
+          "description": "치아 건강의 달 특별 할인",
+          "discountRate": 10,
+          "validUntil": "2024년 10월 31일"
+        }
+      ],
+      "recommendations": [
+        "식사 후 치아 건강 관리",
+        "입냄새 제거",
+        "스트레스 해소"
+      ],
+      "imageResourceName": "자일리톨 껌",
+      "imagePath": "drawable/xy_gum.png",
+      "stockStatus": "재고 있음"
+    },
+    {
+      "id": "ec001",
+      "name": "테리아 티크",
+      "category": "전자담배",
+      "price": 4800,
+      "originalPrice": null,
+      "brand": "KT&G",
+      "description": "편리하고 안전한 일회용 전자담배",
+      "features": [
+        "일회용으로 간편",
+        "니코틴 함유량 조절 가능",
+        "다양한 맛 선택",
+        "배터리 충전 불필요",
+        "휴대하기 편한 크기"
+      ],
+      "ingredients": [
+        "니코틴",
+        "프로필렌글리콜",
+        "글리세린",
+        "천연향료"
+      ],
+      "nutrition": null,
+      "taste": null,
+      "reputation": {
+        "overallRating": 4.3,
+        "reviewCount": 1800,
+        "positiveReviews": 1500,
+        "negativeReviews": 120,
+        "neutralReviews": 180,
+        "reputationScore": "좋음",
+        "marketPosition": "인기 상품",
+        "customerSatisfaction": "만족",
+        "weeklySales": 950,
+        "salesRank": "인기 상품",
+        "detailedReviews": [
+          "일회용이라서 편리해요. 여행갈 때도 좋아요",
+          "니코틴 함유량 조절이 가능해서 좋아요",
+          "다양한 맛이 있어서 선택의 폭이 넓어요",
+          "배터리 충전이 필요 없어서 간편해요",
+          "금연 보조제로 활용하기 좋아요"
+        ],
+        "pros": [
+          "일회용으로 편리",
+          "니코틴 함유량 조절 가능",
+          "다양한 맛 선택",
+          "배터리 충전 불필터",
+          "휴대하기 편한 크기"
+        ],
+        "cons": [
+          "성인 인증 필요",
+          "일부 고객이 맛이 약하다고 느낌",
+          "환경 오염 우려"
+        ]
+      },
+      "events": [
+        {
+          "type": "할인",
+          "description": "전자 담배 훈연기 아이코스 일루마 아이 신제품 출시 할인 행사 중",
+          "discountRate": 20,
+          "validUntil": "2024년 12월 15일"
+        }
+      ],
+      "recommendations": [
+        "성인만 구매 가능 (만 19세 이상)",
+        "금연 보조제로 활용",
+        "여행시 편리"
+      ],
+      "imageResourceName": "terea",
+      "imagePath": "drawable/terea.png",
+      "stockStatus": "재고 있음 (성인 인증 필요)"
+    },
+    {
+      "id": "ec002",
+      "name": "일루마 훈연기",
+      "category": "전자담배",
+      "price": 65000,
+      "originalPrice": null,
+      "brand": "KT&G",
+      "description": "최신 기술이 적용된 프리미엄 훈연기! 일루마 시스템으로 더욱 부드럽고 깊은 맛을 경험할 수 있는 신제품입니다.",
+      "features": [
+        "일루마 시스템 적용",
+        "부드럽고 깊은 맛",
+        "고급스러운 디자인",
+        "장시간 사용 가능",
+        "USB-C 충전",
+        "스마트 온도 조절"
+      ],
+      "ingredients": [
+        "니코틴",
+        "프로필렌글리콜",
+        "글리세린",
+        "천연향료",
+        "일루마 코일"
+      ],
+      "nutrition": null,
+      "taste": null,
+      "reputation": {
+        "overallRating": 4.7,
+        "reviewCount": 650,
+        "positiveReviews": 580,
+        "negativeReviews": 35,
+        "neutralReviews": 35,
+        "reputationScore": "매우 좋음",
+        "marketPosition": "신제품 인기",
+        "customerSatisfaction": "매우 만족",
+        "weeklySales": 280,
+        "salesRank": "인기 상품",
+        "detailedReviews": [
+          "일루마 시스템이 정말 대단해요! 부드럽고 깊은 맛을 경험할 수 있어요",
+          "고급스러운 디자인이 마음에 들어요. 프리미엄 느낌이 나요",
+          "USB-C 충전이라서 편리해요. 스마트 온도 조절도 좋아요",
+          "신제품이라서 특별한 느낌이에요. 기존 제품보다 훨씬 좋아요",
+          "장시간 사용 가능해서 만족해요. 가격이 비싸지만 가치가 있어요"
+        ],
+        "pros": [
+          "일루마 시스템으로 부드러운 맛",
+          "고급스러운 디자인",
+          "USB-C 충전",
+          "스마트 온도 조절",
+          "장시간 사용 가능"
+        ],
+        "cons": [
+          "가격이 매우 높음",
+          "성인 인증 필요",
+          "신제품이라 재고 부족 가능성"
+        ]
+      },
+      "events": [
+        {
+          "type": "신제품 런칭",
+          "description": "일루마 훈연기 신제품 런칭 기념 25% 할인",
+          "discountRate": 25,
+          "validUntil": "2024년 12월 31일"
+        }
+      ],
+      "recommendations": [
+        "성인만 구매 가능 (만 19세 이상)",
+        "프리미엄 전자담배를 원하는 분",
+        "부드러운 훈연 경험을 원하는 분"
+      ],
+      "imageResourceName": null,
+      "imagePath": "drawable/icos_iluma.png",
+      "stockStatus": "재고 있음 (성인 인증 필요)"
+    },
+    {
+      "id": "rm001",
+      "name": "팔도 비빔면 컵",
+      "category": "라면/면류",
+      "price": 1500,
+      "originalPrice": null,
+      "brand": "팔도",
+      "description": "신선한 채소와 매콤달콤한 비빔면 소스가 어우러진 한국의 대표 비빔면",
+      "features": [
+        "신선한 채소 동반",
+        "매콤달콤한 비빔면 소스",
+        "쫄깃한 면발",
+        "간편한 조리법",
+        "영양 균형 잡힌 구성"
+      ],
+      "ingredients": [
+        "면",
+        "고추장",
+        "설탕",
+        "식초",
+        "참기름",
+        "깨",
+        "채소",
+        "조미료"
+      ],
+      "nutrition": {
+        "calories": 380,
+        "protein": 8.0,
+        "fat": 12.0,
+        "carbohydrates": 58.0,
+        "sodium": 1200,
+        "sugar": 8.0,
+        "servingSize": "1개 (120g)"
+      },
+      "taste": {
+        "rating": 4.5,
+        "taste": "매콤달콤한 한국 전통 맛",
+        "spiciness": 3,
+        "popularity": "매우 인기",
+        "customerReviews": [
+          "한국의 맛이 그대로 나와요!",
+          "채소가 신선해서 맛있어요",
+          "매콤달콤한 소스가 일품이에요",
+          "간편하면서도 맛있는 비빔면"
+        ]
+      },
+      "reputation": {
+        "overallRating": 4.6,
+        "reviewCount": 2800,
+        "positiveReviews": 2400,
+        "negativeReviews": 180,
+        "neutralReviews": 220,
+        "reputationScore": "매우 좋음",
+        "marketPosition": "시장 선도",
+        "customerSatisfaction": "매우 만족",
+        "weeklySales": 2200,
+        "salesRank": "베스트셀러",
+        "detailedReviews": [
+          "한국의 맛이 그대로 나와요! 매콤달콤한 소스가 일품이에요",
+          "채소가 신선해서 맛있어요. 영양도 골고루 섭취할 수 있어요",
+          "간편하면서도 맛있는 비빔면이에요. 점심 메뉴로 완벽해요",
+          "쫄깃한 면발이 정말 맛있어요. 한식 애호가라면 꼭 먹어봐야 해요",
+          "가격 대비 훌륭한 제품이에요. 가족 모두가 좋아해요"
+        ],
+        "pros": [
+          "한국 전통 맛",
+          "신선한 채소 동반",
+          "매콤달콤한 소스",
+          "쫄깃한 면발",
+          "영양 균형 잡힌 구성"
+        ],
+        "cons": [
+          "일부 고객이 매운맛을 느낌",
+          "나트륨 함량이 높음",
+          "채소가 부족하다고 느끼는 고객 있음"
+        ]
+      },
+      "events": [
+        {
+          "type": "할인",
+          "description": "한식의 달 특별 할인",
+          "discountRate": 20,
+          "validUntil": "2024년 11월 30일"
+        }
+      ],
+      "recommendations": [
+        "점심 메뉴로 추천",
+        "한식 애호가에게 인기",
+        "채소 섭취가 필요한 분에게 좋음"
+      ],
+      "imageResourceName": "팔도 비빔면 컵",
+      "imagePath": "drawable/bibim_noodle.png",
+      "stockStatus": "재고 있음"
+    },
+    {
+      "id": "rm002",
+      "name": "불닭볶음면",
+      "category": "라면/면류",
+      "price": 1600,
+      "originalPrice": null,
+      "brand": "삼양",
+      "description": "중독성 강한 매운맛과 쫄깃한 면발이 특징인 한국 대표 매운 라면",
+      "features": [
+        "극강의 매운맛",
+        "쫄깃한 면발",
+        "간편한 조리",
+        "스트레스 해소에 탁월"
+      ],
+      "ingredients": [
+        "면",
+        "액상스프",
+        "후첨토핑",
+        "고추",
+        "닭고기 추출물",
+        "간장",
+        "설탕",
+        "마늘"
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 9.0,
+        "fat": 15.0,
+        "carbohydrates": 60.0,
+        "sodium": 1280,
+        "sugar": 5.0,
+        "servingSize": "1개 (140g)"
+      },
+      "taste": {
+        "rating": 4.8,
+        "taste": "매우 매운 불닭 맛",
+        "spiciness": 5,
+        "popularity": "전 세계적 인기",
+        "customerReviews": [
+          "너무 매운데 계속 생각나요!",
+          "스트레스 풀리는 맛",
+          "중독성 최고"
+        ]
+      },
+      "reputation": {
+        "overallRating": 4.8,
+        "reviewCount": 5000,
+        "positiveReviews": 4500,
+        "negativeReviews": 150,
+        "neutralReviews": 350,
+        "reputationScore": "매우 좋음",
+        "marketPosition": "시장 선도",
+        "customerSatisfaction": "매우 만족",
+        "weeklySales": 3500,
+        "salesRank": "베스트셀러",
+        "detailedReviews": [
+          "매운맛 마니아라면 무조건!",
+          "해외에서도 인기 많은 K-라면",
+          "치즈랑 같이 먹으면 더 맛있어요",
+          "다음날 화장실 예약",
+          "매운데 계속 땡기는 마성의 맛"
+        ],
+        "pros": [
+          "강력한 매운맛",
+          "중독성",
+          "스트레스 해소",
+          "간편함",
+          "세계적인 인기"
+        ],
+        "cons": [
+          "매우 매움 (주의 필요)",
+          "나트륨 함량 높음"
+        ]
+      },
+      "events": [
+        {
+          "type": "증정",
+          "description": "불닭 볶음면 5개 구매 시 컵라면 1개 증정",
+          "discountRate": null,
+          "validUntil": "2024년 12월 31일"
+        }
+      ],
+      "recommendations": [
+        "매운맛 선호 고객",
+        "스트레스 해소용",
+        "간편한 한 끼 식사"
+      ],
+      "imageResourceName": "불닭볶음면",
+      "imagePath": "drawable/fire_chik.png",
+      "stockStatus": "재고 있음"
+    },
+    {
+      "id": "rm003",
+      "name": "배홍동 비빔면",
+      "category": "라면/면류",
+      "price": 1400,
+      "originalPrice": null,
+      "brand": "농심",
+      "description": "배, 홍고추, 동치미 육수로 만든 특제 소스가 일품인 시원하고 깔끔한 비빔면",
+      "features": [
+        "배, 홍고추, 동치미 특제 소스",
+        "시원하고 깔끔한 맛",
+        "쫄깃한 면발",
+        "여름철 별미"
+      ],
+      "ingredients": [
+        "면",
+        "액상스프",
+        "건더기 스프",
+        "배농축액",
+        "홍고추",
+        "동치미농축액",
+        "식초",
+        "설탕"
+      ],
+      "nutrition": {
+        "calories": 390,
+        "protein": 8.5,
+        "fat": 13.0,
+        "carbohydrates": 55.0,
+        "sodium": 1150,
+        "sugar": 7.0,
+        "servingSize": "1개 (130g)"
+      },
+      "taste": {
+        "rating": 4.5,
+        "taste": "새콤달콤 시원한 맛",
+        "spiciness": 3,
+        "popularity": "높은 인기",
+        "customerReviews": [
+          "여름에 딱이에요!",
+          "깔끔하고 맛있어요",
+          "소스가 정말 특별해요"
+        ]
+      },
+      "reputation": {
+        "overallRating": 4.5,
+        "reviewCount": 3800,
+        "positiveReviews": 3300,
+        "negativeReviews": 100,
+        "neutralReviews": 400,
+        "reputationScore": "매우 좋음",
+        "marketPosition": "인기 상품",
+        "customerSatisfaction": "매우 만족",
+        "weeklySales": 2800,
+        "salesRank": "베스트셀러",
+        "detailedReviews": [
+          "여름철 필수템! 시원하고 깔끔한 맛이 최고예요",
+          "배 소스가 신의 한 수!",
+          "매콤함과 시원함의 조화가 완벽해요",
+          "비빔면 중 단연 최고",
+          "간편하게 즐기는 고급 비빔면"
+        ],
+        "pros": [
+          "새콤달콤 시원한 맛",
+          "특제 소스",
+          "여름철 별미",
+          "간편한 조리",
+          "높은 만족도"
+        ],
+        "cons": [
+          "나트륨 함량 높음",
+          "일부 고객이 매운맛을 약하다고 느낌"
+        ]
+      },
+      "events": [
+        {
+          "type": "이벤트",
+          "description": "여름 맞이 비빔면 페스티벌 1+1",
+          "discountRate": null,
+          "validUntil": "2024년 08월 31일"
+        }
+      ],
+      "recommendations": [
+        "여름철 시원한 한 끼",
+        "새콤달콤한 맛 선호 고객",
+        "라면을 색다르게 즐기고 싶은 분"
+      ],
+      "imageResourceName": "배홍동 비빔면",
+      "imagePath": "drawable/pear_red.png",
+      "stockStatus": "재고 있음"
+    },
+    {
+      "id": "sn003",
+      "name": "하리보 골드베렌",
+      "category": "젤리/캔디",
+      "price": 2000,
+      "originalPrice": null,
+      "brand": "하리보",
+      "description": "전 세계적으로 사랑받는 곰 모양 젤리, 하리보 골드베렌입니다. 쫄깃한 식감과 달콤한 과일 맛이 특징입니다.",
+      "features": [
+        "쫄깃한 식감",
+        "다양한 과일 맛",
+        "곰 모양 젤리",
+        "천연 색소 사용"
+      ],
+      "ingredients": [
+        "포도당시럽",
+        "설탕",
+        "젤라틴",
+        "구연산",
+        "과일주스농축액 (사과, 라즈베리, 딸기, 오렌지, 레몬, 파인애플)",
+        "천연착향료",
+        "식물성유지"
+      ],
+      "nutrition": {
+        "calories": 343,
+        "protein": 6.9,
+        "fat": 0.5,
+        "carbohydrates": 77.0,
+        "sodium": 7,
+        "sugar": 46.0,
+        "servingSize": "100g"
+      },
+      "taste": {
+        "rating": 4.8,
+        "taste": "달콤한 과일 맛",
+        "spiciness": 0,
+        "popularity": "매우 높음",
+        "customerReviews": [
+          "언제 먹어도 질리지 않는 클래식한 맛!",
+          "아이들이 가장 좋아하는 젤리예요.",
+          "쫄깃한 식감이 스트레스 해소에 좋아요."
+        ]
+      },
+      "reputation": {
+        "overallRating": 4.9,
+        "reviewCount": 15000,
+        "positiveReviews": 14500,
+        "negativeReviews": 100,
+        "neutralReviews": 400,
+        "reputationScore": "매우 좋음",
+        "marketPosition": "시장 선도",
+        "customerSatisfaction": "매우 만족",
+        "weeklySales": 8000,
+        "salesRank": "베스트셀러",
+        "detailedReviews": [
+          "젤리의 정석! 다른 젤리는 이제 못 먹겠어요.",
+          "다양한 과일 맛을 한 번에 즐길 수 있어서 좋아요.",
+          "가격도 저렴하고 양도 많아서 가성비 최고!",
+          "귀여운 곰돌이 모양이라 먹는 재미가 있어요."
+        ],
+        "pros": [
+          "클래식하고 변치 않는 맛",
+          "쫄깃한 식감",
+          "높은 가성비",
+          "전 연령층에게 인기"
+        ],
+        "cons": [
+          "이에 잘 달라붙음",
+          "한 번 뜯으면 멈출 수 없음"
+        ]
+      },
+      "events": [
+        {
+          "type": "증정",
+          "description": "2+1 행사 진행 중",
+          "discountRate": null,
+          "validUntil": "2024-12-31"
+        }
+      ],
+      "recommendations": [
+        "아이들 간식",
+        "입이 심심할 때",
+        "영화관 간식"
+      ],
+      "imageResourceName": null,
+      "imagePath": "drawable/haribo_gold.png",
+      "stockStatus": "재고 있음"
+    }
+  ]
+}

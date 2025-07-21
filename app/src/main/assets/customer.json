@@ -1,0 +1,183 @@
+[
+  {
+    "name": "김안토니오",
+    "phoneNumber": "01062904539",
+    "purchaseHistory": [
+      {
+        "productName": "허니버터칩",
+        "purchaseDate": "2025-7-10",
+        "quantity": 2,
+        "price": 3600
+      },
+      {
+        "productName": "허니버터칩",
+        "purchaseDate": "2025-7-9",
+        "quantity": 1,
+        "price": 1800
+      },
+      {
+        "productName": "테리아 티크",
+        "purchaseDate": "2025-7-9",
+        "quantity": 1,
+        "price": 4800
+      },
+      {
+        "productName": "테리아 티크",
+        "purchaseDate": "2025-7-5",
+        "quantity": 1,
+        "price": 4800
+      },
+      {
+        "productName": "허니버터칩",
+        "purchaseDate": "2025-7-1",
+        "quantity": 3,
+        "price": 5400
+      },
+      {
+        "productName": "코카콜라제로",
+        "purchaseDate": "2025-7-1",
+        "quantity": 1,
+        "price": 1500
+      },
+      {
+        "productName": "불닭볶음면",
+        "purchaseDate": "2025-7-1",
+        "quantity": 1,
+        "price": 1600
+      },
+      {
+        "productName": "스텔라 아르투아 맥주",
+        "purchaseDate": "2025-6-25",
+        "quantity": 2,
+        "price": 6000
+      },
+      {
+        "productName": "하리보 골드베렌",
+        "purchaseDate": "2025-6-25",
+        "quantity": 3,
+        "price": 6000
+      },
+      {
+        "productName": "아메리카노",
+        "purchaseDate": "2025-6-25",
+        "quantity": 1,
+        "price": 3000
+      },
+      {
+        "productName": "테리아 티크",
+        "purchaseDate": "2025-6-25",
+        "quantity": 1,
+        "price": 4800
+      },
+      {
+        "productName": "코카콜라제로",
+        "purchaseDate": "2025-6-25",
+        "quantity": 1,
+        "price": 1500
+      },
+      {
+        "productName": "허니버터칩",
+        "purchaseDate": "2025-6-22",
+        "quantity": 1,
+        "price": 2500
+      },
+      {
+        "productName": "자일리톨 껌",
+        "purchaseDate": "2025-6-22",
+        "quantity": 1,
+        "price": 1200
+      },
+      {
+        "productName": "코카콜라제로",
+        "purchaseDate": "2025-6-22",
+        "quantity": 2,
+        "price": 3000
+      },
+      {
+        "productName": "팔도 비빔면 컵",
+        "purchaseDate": "2025-6-22",
+        "quantity": 1,
+        "price": 1500
+      },
+      {
+        "productName": "스텔라 아르투아 맥주",
+        "purchaseDate": "2025-6-18",
+        "quantity": 1,
+        "price": 3000
+      },
+      {
+        "productName": "테리아 티크",
+        "purchaseDate": "2025-6-18",
+        "quantity": 1,
+        "price": 4800
+      },
+      {
+        "productName": "하리보 골드베렌",
+        "purchaseDate": "2025-6-18",
+        "quantity": 2,
+        "price": 4000
+      },
+      {
+        "productName": "불닭볶음면",
+        "purchaseDate": "2025-6-18",
+        "quantity": 1,
+        "price": 1600
+      },
+      {
+        "productName": "포카칩",
+        "purchaseDate": "2025-6-12",
+        "quantity": 1,
+        "price": 1500
+      },
+      {
+        "productName": "하리보 골드베렌",
+        "purchaseDate": "2025-6-12",
+        "quantity": 2,
+        "price": 4000
+      },
+      {
+        "productName": "코카콜라제로",
+        "purchaseDate": "2025-6-12",
+        "quantity": 1,
+        "price": 1500
+      },
+      {
+        "productName": "팔도 비빔면 컵",
+        "purchaseDate": "2025-6-12",
+        "quantity": 2,
+        "price": 3000
+      },
+      {
+        "productName": "스텔라 아르투아 맥주",
+        "purchaseDate": "2025-6-12",
+        "quantity": 1,
+        "price": 3000
+      },
+      {
+        "productName": "하리보 골드베렌",
+        "purchaseDate": "2025-6-7",
+        "quantity": 2,
+        "price": 4000
+      },
+      {
+        "productName": "허니버터칩",
+        "purchaseDate": "2025-6-7",
+        "quantity": 2,
+        "price": 3600
+      },
+      {
+        "productName": "테리아 티크",
+        "purchaseDate": "2025-6-7",
+        "quantity": 1,
+        "price": 4800
+      },
+      {
+        "productName": "코카콜라제로",
+        "purchaseDate": "2025-6-7",
+        "quantity": 1,
+        "price": 1500
+      }
+    ],
+    "preferences": ["과자", "스낵", "음료"]
+  }
+]

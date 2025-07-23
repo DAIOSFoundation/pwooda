@@ -145,7 +145,7 @@ fun MainScreen(
     ) {
         // 배경 이미지
         Image(
-            painter = painterResource(id = R.drawable.cu_staff),
+            painter = painterResource(id = R.drawable.totoro),
             contentDescription = "Background",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -211,14 +211,8 @@ fun MainScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Image(
-                            painter = painterResource(id = R.raw.cu_ci),
-                            contentDescription = "CU CI",
-                            modifier = Modifier.size(80.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "AI Staff",
+                            text = "AI Friend",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Bold,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
@@ -288,15 +282,6 @@ fun MainScreen(
                                 Column(
                                     modifier = Modifier.padding(16.dp)
                                 ) {
-                                    Text(
-                                        text = "AI Staff 응답:",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    
                                     Text(
                                         text = state.response,
                                         style = MaterialTheme.typography.bodyMedium,

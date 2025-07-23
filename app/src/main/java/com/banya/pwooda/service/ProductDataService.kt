@@ -1,7 +1,7 @@
 package com.banya.pwooda.service
 
 import android.content.Context
-import com.banya.bgf_aistaff.data.*
+import com.banya.pwooda.data.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers

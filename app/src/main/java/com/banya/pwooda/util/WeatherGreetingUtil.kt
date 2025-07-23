@@ -5,21 +5,19 @@ import kotlin.random.Random
 object WeatherGreetingUtil {
     
     private val weatherGreetings = listOf(
-        "오늘 날씨가 정말 좋네요.",
-        "맑은 하늘이 기분을 좋게 만들어요.",
-        "따뜻한 햇살이 가득한 하루예요.",
-        "상쾌한 바람이 불어오는 날씨네요.",
-        "오늘은 외출하기 좋은 날씨예요.",
-        "맑고 화창한 하루가 되길 바라요.",
-        "기분 좋은 날씨가 계속되길 바라요.",
-        "오늘도 좋은 하루 보내세요.",
-        "상쾌한 아침이에요.",
-        "오늘 하루도 힘내세요.",
-        "좋은 하루 되세요.",
-        "오늘도 즐거운 하루 보내세요.",
-        "상쾌한 공기가 가득한 하루예요.",
-        "오늘도 행복한 하루 되세요.",
-        "기분 좋은 하루가 되길 바라요."
+        "오늘 날씨가 정말 좋아.",
+        "난 오늘 맑은 하늘 때문에 기분이 좋아.",
+        "따뜻한 햇살이 가득한 하루야.",
+        "상쾌한 바람이 불어오는 날씨야.",
+        "오늘은 외출하기 좋은 날씨야.",
+        "맑고 화창한 하루가 되길 바래.",
+        "기분 좋은 날씨가 계속되길 바래.",
+        "오늘도 좋은 하루가 되렴.",
+        "상쾌한 아침이야.",
+        "오늘 하루도 힘내.",
+        "오늘도 즐거운 하루 보내고 있지?",
+        "상쾌한 공기가 가득한 하루야.",
+        "오늘도 행복한 하루 보내고 있니?.",
     )
     
     fun getRandomWeatherGreeting(): String {
@@ -33,9 +31,9 @@ object WeatherGreetingUtil {
     fun getPersonalizedWelcomeMessage(customerName: String?): String {
         val weatherGreeting = getRandomWeatherGreeting()
         return if (customerName != null && customerName.isNotEmpty()) {
-            "안녕하세요. ${customerName} 고객님, $weatherGreeting 반가워요. 전 BGF 리테일의 AI 스탭, 리나 라고 합니다. 저에게 제품을 보여 주시거나 말을 걸어 주세요."
+            "${customerName} 야, $weatherGreeting 궁금한게 있으면 뭐든지 나한테 물어봐 줄래?"
         } else {
-            "안녕하세요. $weatherGreeting 반가워요. 전 BGF 리테일의 AI 스탭, 리나 라고 합니다. 저에게 제품을 보여 주시거나 말을 걸어 주세요."
+            "$weatherGreeting 궁금한게 있으면 뭐든지 나한테 물어봐 줄래?"
         }
     }
 }

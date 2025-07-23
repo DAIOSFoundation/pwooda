@@ -89,19 +89,16 @@ class FaceDetectionService(private val context: Context) {
                     
                     if (faces.isNotEmpty()) {
                         if (!_isFaceDetected.value) {
-                            Log.d("FaceDetection", "얼굴 감지됨: ${faces.size}개")
+                            Log.d("FaceDetection", "얼굴 감지됨: "+faces.size+"개")
                             _isFaceDetected.value = true
-                        }
-                        
-                        // 20초마다 환영 메시지 출력
-                        if (currentTime - lastFaceDetectionTime > 20000) {
-                            Log.d("FaceDetection", "20초 경과, 환영 메시지 출력")
-                            lastFaceDetectionTime = currentTime
+                            // 최초 얼굴 감지 시 바로 콜백 실행
                             onFaceDetectedCallback?.invoke()
                         }
+                        // 20초마다 반복 안내는 삭제
                     } else if (faces.isEmpty() && _isFaceDetected.value) {
                         Log.d("FaceDetection", "얼굴이 사라짐")
                         _isFaceDetected.value = false
+                        // onFaceLost() 호출 제거: 환영 메시지는 최초 1회만 실행
                     }
                 }
                 .addOnFailureListener { e ->

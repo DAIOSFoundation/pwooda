@@ -1256,9 +1256,26 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+    // 이름 추출용 Gemini 프롬프트
+    private suspend fun extractNameWithGemini(question: String): String? {
+        val prompt = """
+            아래 문장에서 사람 이름만 뽑아서 한 단어(이름)만 반환해줘.
+            이름이 없으면 '없음'이라고 답해.
+            문장: "$question"
+        """.trimIndent()
+        return try {
+            val result = generativeModel?.generateContent(prompt)
+            val name = result?.text?.trim()?.replace("\"", "") ?: ""
+            if (name == "없음" || name.isBlank()) null else name
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     // 이름인식 의도 처리 함수
     private suspend fun handleNameRecognition(question: String) {
-        val name = extractNameFromQuestion(question)
+        // val name = extractNameFromQuestion(question)
+        val name = extractNameWithGemini(question)
         android.util.Log.d("GeminiViewModel", "[로그] 이름 추출 결과: $name")
         if (name.isNullOrBlank()) {
             val response = "이름을 잘 못 들었어요. 다시 한 번 또박또박 말해줄래요?"
@@ -1279,33 +1296,6 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
             addAssistantMessage(response)
             speakText(response)
         }
-    }
-
-    // 이름 추출 함수 (간단 버전)
-    private fun extractNameFromQuestion(question: String): String? {
-        // "내 이름은 ", "이름은 ", "저는 ", "제 이름은 ", "이름이 ", "이름 ", "나는 ", "난 ", "저는 ", "저 " 등에서 이름만 추출
-        val patterns = listOf(
-            "내 이름은 ", "이름은 ", "저는 ", "제 이름은 ", "이름이 ", "이름 ", "나는 ", "난 ", "저는 ", "저 "
-        )
-        for (prefix in patterns) {
-            if (question.startsWith(prefix)) {
-                // 접두어 이후 첫 번째 공백/문장부호/조사 전까지 추출
-                val namePart = question.removePrefix(prefix).trim()
-                // 조사/문장부호 등 제거
-                return namePart.replace(Regex("[은는이가요입니다\\s.,!?~]+$"), "")
-            }
-        }
-        // "...이야", "...입니다" 등으로 끝나는 경우
-        val suffixPatterns = listOf("입니다", "이에요", "야", "이야", "야요", "라고 해요", "라고 합니다")
-        for (suffix in suffixPatterns) {
-            if (question.endsWith(suffix)) {
-                val namePart = question.removeSuffix(suffix).trim()
-                // 앞에 조사/불필요한 단어 제거
-                return namePart.replace(Regex(".*(이름은|이름이|이름|저는|나는|난|저|제|)"), "").trim()
-            }
-        }
-        // "내 이름 뭐야?", "내 이름 기억해?" 등은 이름이 이미 등록된 경우라서 null 반환
-        return null
     }
 
     // 어시스턴트 메시지 추가 함수 (간단 버전)

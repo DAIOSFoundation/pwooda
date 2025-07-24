@@ -36,21 +36,50 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.media.MediaPlayer
 
 class SplashActivity : ComponentActivity() {
-    
+    private var musicPlayer: MediaPlayer? = null
+    private var isMusicCompleted = false
+    private var isVideoCompleted = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // intro_music.mp3 MediaPlayer 초기화 및 재생
+        musicPlayer = MediaPlayer.create(this, R.raw.intro_music)
+        musicPlayer?.isLooping = false
+        musicPlayer?.setOnCompletionListener {
+            isMusicCompleted = true
+            // 음악과 비디오가 모두 끝났을 때만 메인화면으로 이동 (스킵이 아닐 때만)
+            if (isVideoCompleted) {
+                goToMain()
+            }
+        }
+        musicPlayer?.start()
         setContent {
             SplashScreen(
                 onVideoComplete = {
-                    // 페이드 아웃 애니메이션 후 MainActivity로 이동
-                    startActivity(Intent(this, MainActivity::class.java))
-                    overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-                    finish()
+                    // 스킵 버튼 또는 화면 터치 시 즉시 메인화면으로 이동
+                    goToMain()
                 }
             )
         }
+    }
+
+    private fun goToMain() {
+        musicPlayer?.stop()
+        musicPlayer?.release()
+        musicPlayer = null
+        startActivity(Intent(this, MainActivity::class.java))
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        finish()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        musicPlayer?.stop()
+        musicPlayer?.release()
+        musicPlayer = null
     }
 }
 

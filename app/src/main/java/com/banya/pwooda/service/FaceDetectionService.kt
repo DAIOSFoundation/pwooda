@@ -44,7 +44,6 @@ class FaceDetectionService(private val context: Context) {
     private val faceDetector = FaceDetection.getClient(faceDetectorOptions)
     
     fun startFaceDetection(lifecycleOwner: LifecycleOwner, onFaceDetected: () -> Unit) {
-        Log.d("FaceDetection", "얼굴 감지 시작")
         
         // 콜백 저장
         onFaceDetectedCallback = onFaceDetected
@@ -71,9 +70,7 @@ class FaceDetectionService(private val context: Context) {
                     CameraSelector.DEFAULT_FRONT_CAMERA,
                     imageAnalysis!!
                 )
-                Log.d("FaceDetection", "전면 카메라 바인딩 완료")
             } catch (e: Exception) {
-                Log.e("FaceDetection", "카메라 바인딩 실패", e)
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -89,20 +86,17 @@ class FaceDetectionService(private val context: Context) {
                     
                     if (faces.isNotEmpty()) {
                         if (!_isFaceDetected.value) {
-                            Log.d("FaceDetection", "얼굴 감지됨: "+faces.size+"개")
                             _isFaceDetected.value = true
                             // 최초 얼굴 감지 시 바로 콜백 실행
                             onFaceDetectedCallback?.invoke()
                         }
                         // 20초마다 반복 안내는 삭제
                     } else if (faces.isEmpty() && _isFaceDetected.value) {
-                        Log.d("FaceDetection", "얼굴이 사라짐")
                         _isFaceDetected.value = false
                         // onFaceLost() 호출 제거: 환영 메시지는 최초 1회만 실행
                     }
                 }
                 .addOnFailureListener { e ->
-                    Log.e("FaceDetection", "얼굴 감지 실패", e)
                 }
                 .addOnCompleteListener {
                     imageProxy.close()
@@ -113,13 +107,11 @@ class FaceDetectionService(private val context: Context) {
     }
     
     fun stopFaceDetection() {
-        Log.d("FaceDetection", "얼굴 감지 중지")
         try {
             cameraProvider?.unbindAll()
             imageAnalysis?.clearAnalyzer()
             cameraExecutor.shutdown()
         } catch (e: Exception) {
-            Log.e("FaceDetection", "얼굴 감지 중지 중 오류", e)
         }
     }
     

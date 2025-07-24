@@ -524,14 +524,20 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
 
     // 인식된 고객 ID 설정 (MainActivity에서 호출)
     fun setRecognizedCustomerId(id: String?) {
+        android.util.Log.d("GeminiViewModel", "[로그] setRecognizedCustomerId 호출됨: $id")
         recognizedCustomerId = id
-        android.util.Log.d("GeminiViewModel", "setRecognizedCustomerId 호출됨: recognizedCustomerId=$recognizedCustomerId")
+        if (customerDataService == null) {
+            android.util.Log.e("GeminiViewModel", "[로그] customerDataService가 null입니다. 사용자 정보를 불러올 수 없습니다.")
+        }
         if (id == null) {
             currentUser = null
             currentSchedule = null
+            android.util.Log.d("GeminiViewModel", "[로그] id가 null이므로 currentUser, currentSchedule = null")
         } else {
             currentUser = customerDataService?.getUserById(id)
             currentSchedule = customerDataService?.getScheduleByUserId(id)
+            android.util.Log.d("GeminiViewModel", "[로그] currentUser: $currentUser")
+            android.util.Log.d("GeminiViewModel", "[로그] currentSchedule: $currentSchedule")
         }
         _recognizedCustomerName.value = currentUser?.nickname
         android.util.Log.d("GeminiViewModel", "인식된 고객 ID 설정됨: $id, 닉네임: ${currentUser?.nickname}")
@@ -593,11 +599,14 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
         11. "일반대화" - 위에 없는 다른 모든 질문들 (인사, 기분, 기타)
            예시: "안녕", "기분이 좋아", "화장실 어디야?", "언제 문 닫아?"
 
+        12. "이름인식" - 사용자가 자신의 이름을 말하거나, 이름을 등록하거나, 이름을 기억해달라고 요청
+           예시: "내 이름은 토니야", "저는 민수입니다", "이름은 수지야", "내 이름 기억해 줄래?", "내 이름 알아?", "내 이름 기억해?", "내 이름 뭐야?", "내 이름 불러줘"
+
         $historyContext
 
         현재 질문: "$question"
 
-        위 11가지 중 하나로만 답해줘! (일정, 목표/동기부여, 약물 안내, 생활기술, 사회성, 안전, 행동개선, 사물설명, 그림그리기, 그림저장, 일반대화)
+        위 12가지 중 하나로만 답해줘! (일정, 목표/동기부여, 약물 안내, 생활기술, 사회성, 안전, 행동개선, 사물설명, 그림그리기, 그림저장, 일반대화, 이름인식)
         """
 
         return try {
@@ -621,6 +630,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                 intent.contains("사물설명") -> "사물설명"
                 intent.contains("그림그리기") -> "그림그리기"
                 intent.contains("그림저장") -> "그림저장"
+                intent.contains("일반대화") -> "일반대화"
+                intent.contains("이름인식") -> "이름인식"
                 else -> "일반대화"
             }
         } catch (e: Exception) {
@@ -630,7 +641,7 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
     }
 
     suspend fun askGemini(question: String, image: Bitmap? = null) {
-        android.util.Log.d("GeminiViewModel", "askGemini 호출됨 - 질문: $question, recognizedCustomerId=$recognizedCustomerId, currentUser=${currentUser?.nickname}")
+        android.util.Log.d("GeminiViewModel", "askGemini 호출됨 - 질문: $question, recognizedCustomerId=$recognizedCustomerId, currentUser=$currentUser")
         try {
             // 새 대화 시작 시 이미지 표시만 숨김 (이미지는 메모리에 유지)
             _state.value = _state.value.copy(
@@ -642,16 +653,34 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
 
             // 질문 의도 분석
             val questionIntent = analyzeQuestionIntent(question)
-            android.util.Log.d("GeminiViewModel", "질문 의도 분석 결과: $questionIntent")
+            android.util.Log.d("GeminiViewModel", "[로그] 질문 의도 분석 결과: $questionIntent")
 
             // 고객 정보 확인 (항상 recognizedCustomerId로 찾음)
             if (currentUser == null && recognizedCustomerId != null) {
+                android.util.Log.d("GeminiViewModel", "[로그] currentUser가 null이어서 recognizedCustomerId($recognizedCustomerId)로 재조회 시도")
                 currentUser = customerDataService?.getUserById(recognizedCustomerId!!)
                 currentSchedule = customerDataService?.getScheduleByUserId(recognizedCustomerId!!)
+                android.util.Log.d("GeminiViewModel", "[로그] (askGemini) getUserById 결과: $currentUser")
+                android.util.Log.d("GeminiViewModel", "[로그] (askGemini) getScheduleByUserId 결과: $currentSchedule")
             }
             // 맞춤형 컨텍스트 생성
+            val todayDate = java.time.LocalDate.now()
             val todayKey = getTodayKey()
+            val todayKorean = when (todayKey) {
+                "Mon" -> "월요일"
+                "Tue" -> "화요일"
+                "Wed" -> "수요일"
+                "Thu" -> "목요일"
+                "Fri" -> "금요일"
+                "Sat" -> "토요일"
+                "Sun" -> "일요일"
+                else -> todayKey
+            }
             val todaySchedule = currentSchedule?.schedule?.get(todayKey) ?: emptyList()
+            android.util.Log.d("GeminiViewModel", "[로그] todayDate: $todayDate, todayKey: $todayKey, todayKorean: $todayKorean")
+            android.util.Log.d("GeminiViewModel", "[로그] todaySchedule: $todaySchedule")
+            android.util.Log.d("GeminiViewModel", "[로그] currentUser: $currentUser")
+            android.util.Log.d("GeminiViewModel", "[로그] currentSchedule: $currentSchedule")
             val goal = currentUser?.goal ?: ""
             val motivation = currentUser?.motivation ?: ""
             val feedback = currentUser?.feedback?.joinToString("\n") ?: ""
@@ -664,6 +693,7 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                 장애 등급: ${currentUser?.disability_level}
                 관심사: ${currentUser?.interests?.joinToString(", ")}
                 싫어하는 것: ${currentUser?.dislikes?.joinToString(", ")}
+                오늘 날짜: $todayDate ($todayKorean)
                 오늘의 목표: $goal
                 동기부여 메시지: $motivation
                 행동 개선 피드백 예시: $feedback
@@ -671,6 +701,7 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                 행동 개선 팁: $improvementTips
                 """.trimIndent()
             } else ""
+            android.util.Log.d("GeminiViewModel", "[로그] personalizedContext: $personalizedContext")
 
             // 의도에 따른 프롬프트 선택
             val systemPrompt = when (questionIntent) {
@@ -760,6 +791,11 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
             android.util.Log.d("TTS", "TTS 호출 직전 (원본 텍스트): $responseText")
             android.util.Log.d("TTS", "TTS 호출 시작 - 이미지 유무: ${if (image != null) "있음" else "없음"}")
             speakText(responseText)
+
+            if (questionIntent == "이름인식") {
+                handleNameRecognition(question)
+                return
+            }
 
         } catch (e: Exception) {
             android.util.Log.e("GeminiViewModel", "askGemini 오류 발생", e)
@@ -1106,7 +1142,7 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                      !state.isCameraActive &&
                      !state.shouldShowChatBubble // 챗 버블이 떠 있는 동안 얼굴 인식 방지
 
-        android.util.Log.d("FaceDetection", "얼굴 인식 가능 여부 확인: $allowed (isLoading: ${state.isLoading}, isSpeaking: ${state.isSpeaking}, isVoiceDownloading: ${state.isVoiceDownloading}, isListening: ${state.isListening}, isCameraActive: ${state.isCameraActive}, shouldShowChatBubble: ${state.shouldShowChatBubble})")
+       // android.util.Log.d("FaceDetection", "얼굴 인식 가능 여부 확인: $allowed (isLoading: ${state.isLoading}, isSpeaking: ${state.isSpeaking}, isVoiceDownloading: ${state.isVoiceDownloading}, isListening: ${state.isListening}, isCameraActive: ${state.isCameraActive}, shouldShowChatBubble: ${state.shouldShowChatBubble})")
 
         return allowed
     }
@@ -1218,5 +1254,69 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
             java.time.DayOfWeek.SATURDAY -> "Sat"
             java.time.DayOfWeek.SUNDAY -> "Sun"
         }
+    }
+
+    // 이름인식 의도 처리 함수
+    private suspend fun handleNameRecognition(question: String) {
+        val name = extractNameFromQuestion(question)
+        android.util.Log.d("GeminiViewModel", "[로그] 이름 추출 결과: $name")
+        if (name.isNullOrBlank()) {
+            val response = "이름을 잘 못 들었어요. 다시 한 번 또박또박 말해줄래요?"
+            addAssistantMessage(response)
+            speakText(response)
+            return
+        }
+        val userId = mainActivity?.findUserIdByRecognizedName(name)
+        android.util.Log.d("GeminiViewModel", "[로그] userId 매칭 결과: $userId")
+        if (userId != null) {
+            setRecognizedCustomerId(userId)
+            android.util.Log.d("GeminiViewModel", "[로그] setRecognizedCustomerId 호출됨: $userId")
+            val welcome = "${name}님, 반가워요! 앞으로 자주 이름 불러줄게요."
+            addAssistantMessage(welcome)
+            speakText(welcome)
+        } else {
+            val response = "앗! 등록된 이름이 아니래요. 다시 한 번 또박또박 말해줄래요?"
+            addAssistantMessage(response)
+            speakText(response)
+        }
+    }
+
+    // 이름 추출 함수 (간단 버전)
+    private fun extractNameFromQuestion(question: String): String? {
+        // "내 이름은 ", "이름은 ", "저는 ", "제 이름은 ", "이름이 ", "이름 ", "나는 ", "난 ", "저는 ", "저 " 등에서 이름만 추출
+        val patterns = listOf(
+            "내 이름은 ", "이름은 ", "저는 ", "제 이름은 ", "이름이 ", "이름 ", "나는 ", "난 ", "저는 ", "저 "
+        )
+        for (prefix in patterns) {
+            if (question.startsWith(prefix)) {
+                // 접두어 이후 첫 번째 공백/문장부호/조사 전까지 추출
+                val namePart = question.removePrefix(prefix).trim()
+                // 조사/문장부호 등 제거
+                return namePart.replace(Regex("[은는이가요입니다\\s.,!?~]+$"), "")
+            }
+        }
+        // "...이야", "...입니다" 등으로 끝나는 경우
+        val suffixPatterns = listOf("입니다", "이에요", "야", "이야", "야요", "라고 해요", "라고 합니다")
+        for (suffix in suffixPatterns) {
+            if (question.endsWith(suffix)) {
+                val namePart = question.removeSuffix(suffix).trim()
+                // 앞에 조사/불필요한 단어 제거
+                return namePart.replace(Regex(".*(이름은|이름이|이름|저는|나는|난|저|제|)"), "").trim()
+            }
+        }
+        // "내 이름 뭐야?", "내 이름 기억해?" 등은 이름이 이미 등록된 경우라서 null 반환
+        return null
+    }
+
+    // 어시스턴트 메시지 추가 함수 (간단 버전)
+    private fun addAssistantMessage(message: String) {
+        val assistantMessage = ChatMessage("assistant", message)
+        chatHistory.add(assistantMessage)
+        limitChatHistory()
+        _state.value = _state.value.copy(
+            response = message,
+            chatHistory = chatHistory.toList(),
+            shouldShowChatBubble = true
+        )
     }
 }

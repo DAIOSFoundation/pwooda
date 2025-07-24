@@ -9,6 +9,7 @@ import com.banya.pwooda.service.GoogleCloudTTSService
 import com.banya.pwooda.service.PaymentService
 import com.banya.pwooda.service.ProductDataService
 import com.banya.pwooda.service.CustomerDataService
+import com.banya.pwooda.service.FalAIService
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,10 +44,14 @@ data class GeminiState(
     val showNewProductImage: Boolean = false,
     val newProductImageResourceName: String? = null,
     val chatHistory: List<ChatMessage> = emptyList(),
-    val shouldShowChatBubble: Boolean = false // 챗 버블 표시 여부
+    val shouldShowChatBubble: Boolean = false, // 챗 버블 표시 여부
+    val isGeneratingImage: Boolean = false, // 이미지 생성 중 상태
+    val generatedImage: android.graphics.Bitmap? = null, // 생성된 이미지
+    val imageGenerationProgress: String = "", // 이미지 생성 진행 상태
+    val shouldShowGeneratedImage: Boolean = false // 생성된 이미지 표시 여부
 )
 
-class GeminiViewModel : ViewModel() {
+class GeminiViewModel(private val context: Context) : ViewModel() {
 
     private val _state = MutableStateFlow(GeminiState())
     val state: StateFlow<GeminiState> = _state.asStateFlow()
@@ -56,6 +61,7 @@ class GeminiViewModel : ViewModel() {
     private val paymentService = PaymentService()
     private var productDataService: ProductDataService? = null
     private var customerDataService: CustomerDataService? = null
+    private val falAIService = FalAIService()
     val customerDataServicePublic: CustomerDataService?
         get() = customerDataService
     private var currentUser: User? = null
@@ -169,10 +175,283 @@ class GeminiViewModel : ViewModel() {
         """.trimIndent()
     }
 
-    // 질문에서 고객 정보 추출
-    // getCustomerInfoFromQuestion 함수 전체 삭제
+    // 질문에서 그림 그리기 프롬프트 추출 (한글 그대로 전달)
+    private fun extractDrawingPrompt(question: String): String {
+        // "그림 그려줘", "그려줘" 등의 키워드 제거하고 실제 내용만 추출
+        val drawingKeywords = listOf(
+            "그림 그려줘", "그려줘", "이미지 만들어줘", "사진 그려줘", 
+            "그림 그려달라고", "그려달라고", "그림 그려주세요", "그려주세요"
+        )
+        
+        var prompt = question
+        for (keyword in drawingKeywords) {
+            prompt = prompt.replace(keyword, "").trim()
+        }
+        
+        // 추가 정리
+        prompt = prompt.replace("에 대해", "")
+            .replace("에 대해서", "")
+            .replace("을", "")
+            .replace("를", "")
+            .trim()
+        
+        // 프롬프트가 비어있으면 기본값 설정
+        if (prompt.isEmpty()) {
+            prompt = "아름다운 풍경"
+        }
+        
+        android.util.Log.d("GeminiViewModel", "추출된 그림 프롬프트: $prompt")
+        return prompt
+    }
 
-    // 응답 텍스트 정리 (특수 문자, 제어 문자, 이모지 제거)
+    // Gemini를 통해 사용자의 음성 입력 요청을 영문 이미지 생성 프롬프트로 변환
+    private suspend fun translateToImagePrompt(userRequest: String): String {
+        try {
+            val translationPrompt = """
+                사용자가 그림 그리기를 요청했습니다. 다음 요청을 영문 이미지 생성 프롬프트로 변환해줘.
+                
+                요구사항:
+                1. 사용자의 요청을 영어로 번역하고, 이미지 생성에 적합한 키워드로 변환
+                2. 배경 없는 이미지로 생성되도록 "transparent background, no background, isolated" 추가
+                3. 지브리 스타일로 생성되도록 "Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere" 추가
+                4. 고품질 이미지로 생성되도록 "detailed, high quality, masterpiece" 추가
+                5. 영어로만 응답하고, 다른 설명은 하지 마
+                
+                사용자 요청: $userRequest
+                
+                예시:
+                - "귀여운 강아지 그려줘" → "cute dog, Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere, transparent background, no background, isolated, detailed, high quality, masterpiece"
+                - "예쁜 꽃 그려줘" → "beautiful flower, Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere, transparent background, no background, isolated, detailed, high quality, masterpiece"
+            """.trimIndent()
+            
+            // 간단한 Gemini API 호출
+            val content = content {
+                text(translationPrompt)
+            }
+            
+            val response = generativeModel?.generateContent(content)
+            val responseText = response?.text ?: ""
+            
+            android.util.Log.d("GeminiViewModel", "Gemini 프롬프트 변환 결과: $responseText")
+            return responseText.ifEmpty { 
+                // 기본 영문 프롬프트로 폴백
+                "cute dog, Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere, transparent background, no background, isolated, detailed, high quality, masterpiece"
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("GeminiViewModel", "프롬프트 변환 실패", e)
+            // 기본 영문 프롬프트로 폴백
+            return "cute dog, Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere, transparent background, no background, isolated, detailed, high quality, masterpiece"
+        }
+    }
+
+    // 그림 그리기 요청 처리
+    private suspend fun handleDrawingRequest(question: String, personalizedContext: String) {
+        try {
+            android.util.Log.d("GeminiViewModel", "그림 그리기 요청 처리 시작")
+            
+            // 사용자 메시지를 대화 히스토리에 추가
+            val userMessage = ChatMessage("user", question)
+            chatHistory.add(userMessage)
+            limitChatHistory() // 대화 히스토리 크기 제한
+            
+            // Gemini를 통해 사용자의 원본 요청을 영문 프롬프트로 변환
+            val englishPrompt = translateToImagePrompt(question)
+            android.util.Log.d("GeminiViewModel", "변환된 영문 프롬프트: $englishPrompt")
+            
+            // 초기 응답 설정
+            val initialResponse = if (currentUser != null) {
+                "${currentUser?.nickname}야! 그림을 그려줄게! 잠깐만 기다려."
+            } else {
+                "그림을 그려줄게! 잠깐만 기다려."
+            }
+            
+            // AI 응답을 대화 히스토리에 추가
+            val assistantMessage = ChatMessage("assistant", initialResponse)
+            chatHistory.add(assistantMessage)
+            
+            _state.value = _state.value.copy(
+                isLoading = false,
+                response = initialResponse,
+                chatHistory = chatHistory.toList(),
+                shouldShowChatBubble = true,
+                isGeneratingImage = true,
+                imageGenerationProgress = "그림 생성 중..."
+            )
+            
+            // ComfyUI 이미지 생성 API 호출
+            android.util.Log.d("GeminiViewModel", "ComfyUI 이미지 생성 API 호출 시작")
+            val imageData = falAIService.generateImage(englishPrompt)
+            
+            if (imageData != null) {
+                android.util.Log.d("GeminiViewModel", "이미지 데이터 받음")
+                
+                // 이미지 다운로드 및 처리
+                val bitmap = falAIService.downloadImage(imageData)
+                
+                if (bitmap != null) {
+                    val finalResponse = if (currentUser != null) {
+                        "${currentUser?.nickname}야! 그림이 완성됐어! 어떠니?"
+                    } else {
+                        "그림이 완성됐어! 어떠니?"
+                    }
+                    
+                    // 최종 응답으로 업데이트
+                    val finalAssistantMessage = ChatMessage("assistant", finalResponse)
+                    chatHistory[chatHistory.size - 1] = finalAssistantMessage
+                    
+                    _state.value = _state.value.copy(
+                        response = finalResponse,
+                        chatHistory = chatHistory.toList(),
+                        isGeneratingImage = false,
+                        generatedImage = bitmap,
+                        imageGenerationProgress = "",
+                        shouldShowGeneratedImage = true // 이미지 표시 활성화
+                    )
+                    
+                    // TTS로 응답 읽기
+                    speakText(finalResponse)
+                } else {
+                    android.util.Log.e("GeminiViewModel", "이미지 처리 실패")
+                    val errorResponse = "그림을 처리하는데 실패했어. 다시 시도해볼까?"
+                    val errorAssistantMessage = ChatMessage("assistant", errorResponse)
+                    chatHistory[chatHistory.size - 1] = errorAssistantMessage
+                    
+                    _state.value = _state.value.copy(
+                        response = errorResponse,
+                        chatHistory = chatHistory.toList(),
+                        isGeneratingImage = false,
+                        imageGenerationProgress = ""
+                    )
+                }
+            } else {
+                android.util.Log.e("GeminiViewModel", "ComfyUI 이미지 생성 API 호출 실패")
+                val errorResponse = "그림 생성에 실패했어. 다시 시도해볼까?"
+                val errorAssistantMessage = ChatMessage("assistant", errorResponse)
+                chatHistory[chatHistory.size - 1] = errorAssistantMessage
+                
+                _state.value = _state.value.copy(
+                    response = errorResponse,
+                    chatHistory = chatHistory.toList(),
+                    isGeneratingImage = false,
+                    imageGenerationProgress = ""
+                )
+            }
+            
+        } catch (e: Exception) {
+            android.util.Log.e("GeminiViewModel", "그림 그리기 처리 중 오류 발생", e)
+            val errorResponse = "그림 그리기 중 오류가 발생했어. 다시 시도해볼까?"
+            val errorAssistantMessage = ChatMessage("assistant", errorResponse)
+            chatHistory[chatHistory.size - 1] = errorAssistantMessage
+            
+            _state.value = _state.value.copy(
+                response = errorResponse,
+                chatHistory = chatHistory.toList(),
+                isGeneratingImage = false,
+                imageGenerationProgress = ""
+            )
+        }
+    }
+
+    // 그림 저장 요청 처리
+    private suspend fun handleImageSaveRequest(question: String, personalizedContext: String) {
+        try {
+            android.util.Log.d("GeminiViewModel", "그림 저장 요청 처리 시작")
+            
+            // 사용자 메시지를 대화 히스토리에 추가
+            val userMessage = ChatMessage("user", question)
+            chatHistory.add(userMessage)
+            limitChatHistory()
+            
+            // 현재 생성된 이미지가 있는지 확인
+            val currentImage = _state.value.generatedImage
+            if (currentImage == null) {
+                val errorResponse = "저장할 그림이 없어요. 먼저 그림을 그려주세요."
+                val errorAssistantMessage = ChatMessage("assistant", errorResponse)
+                chatHistory.add(errorAssistantMessage)
+                
+                _state.value = _state.value.copy(
+                    response = errorResponse,
+                    chatHistory = chatHistory.toList(),
+                    shouldShowChatBubble = true
+                )
+                
+                speakText(errorResponse)
+                return
+            }
+            
+            // 이미지를 갤러리에 저장
+            val saveResult = saveImageToGallery(currentImage)
+            
+            val response = if (saveResult) {
+                if (currentUser != null) {
+                    "${currentUser?.nickname}야! 그림을 갤러리에 저장했어요!"
+                } else {
+                    "그림을 갤러리에 저장했어요!"
+                }
+            } else {
+                "그림 저장에 실패했어요. 다시 시도해볼까요?"
+            }
+            
+            // AI 응답을 대화 히스토리에 추가
+            val assistantMessage = ChatMessage("assistant", response)
+            chatHistory.add(assistantMessage)
+            
+            _state.value = _state.value.copy(
+                response = response,
+                chatHistory = chatHistory.toList(),
+                shouldShowChatBubble = true
+            )
+            
+            // TTS로 응답 읽기
+            speakText(response)
+            
+        } catch (e: Exception) {
+            android.util.Log.e("GeminiViewModel", "그림 저장 처리 중 오류 발생", e)
+            val errorResponse = "그림 저장 중 오류가 발생했어요. 다시 시도해볼까요?"
+            val errorAssistantMessage = ChatMessage("assistant", errorResponse)
+            chatHistory.add(errorAssistantMessage)
+            
+            _state.value = _state.value.copy(
+                response = errorResponse,
+                chatHistory = chatHistory.toList(),
+                shouldShowChatBubble = true
+            )
+            
+            speakText(errorResponse)
+        }
+    }
+
+    // 이미지를 갤러리에 저장하는 함수
+    private fun saveImageToGallery(bitmap: Bitmap): Boolean {
+        return try {
+            android.util.Log.d("GeminiViewModel", "이미지 갤러리 저장 시작")
+            
+            // MediaStore를 사용하여 이미지 저장
+            val filename = "Pwooda_${System.currentTimeMillis()}.jpg"
+            val contentValues = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Pwooda")
+            }
+            
+            val resolver = context.contentResolver
+            val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            
+            if (uri != null) {
+                resolver.openOutputStream(uri)?.use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                }
+                android.util.Log.d("GeminiViewModel", "이미지 갤러리 저장 성공: $uri")
+                true
+            } else {
+                android.util.Log.e("GeminiViewModel", "이미지 갤러리 저장 실패: URI 생성 실패")
+                false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("GeminiViewModel", "이미지 갤러리 저장 중 오류", e)
+            false
+        }
+    }
     private fun cleanResponseText(text: String): String {
         return text
             .trim() // 앞뒤 공백 제거
@@ -261,10 +540,19 @@ class GeminiViewModel : ViewModel() {
         android.util.Log.d("TTS", "모든 TTS 중지 완료 - 상태 초기화됨")
     }
 
-    // 질문 의도 파악
+    // 질문 의도 파악 (대화 히스토리 포함)
     private suspend fun analyzeQuestionIntent(question: String): String {
+        // 최근 대화 히스토리 가져오기 (최대 6개 메시지)
+        val recentHistory = chatHistory.takeLast(6)
+        val historyContext = if (recentHistory.isNotEmpty()) {
+            "이전 대화:\n" + recentHistory.joinToString("\n") { "${it.role}: ${it.content}" }
+        } else {
+            "이전 대화 없음"
+        }
+
         val intentAnalysisPrompt = """
-        아래는 발달장애인 친구가 AI에게 할 수 있는 질문의 카테고리야. 질문을 듣고 아래 중 하나로 골라줘.
+        아래는 발달장애인 친구가 AI에게 할 수 있는 질문의 카테고리야. 
+        현재 질문과 이전 대화 히스토리를 모두 고려해서 아래 중 하나로 골라줘.
 
         1. "일정" - 오늘 일정, 스케줄, 프로그램, 할 일에 대한 질문
            예시: "오늘 뭐해?", "일정 알려줘", "오늘 할 일이 뭐야?", "프로그램 뭐야?", "스케줄 알려줘"
@@ -290,12 +578,20 @@ class GeminiViewModel : ViewModel() {
         8. "사물설명" - 사물, 물건, 사진에 대한 설명 요청
            예시: "이게 뭐야?", "이거 설명해줘", "사진 찍었어", "물건이 뭐야?"
 
-        9. "일반대화" - 위에 없는 다른 모든 질문들 (인사, 기분, 기타)
+        9. "그림그리기" - 그림 그리기, 이미지 생성 요청
+           예시: "그림 그려줘", "그려줘", "이미지 만들어줘", "사진 그려줘", "그림 그려달라고"
+
+        10. "그림저장" - 생성된 그림을 저장하는 요청
+           예시: "그림 저장해줘", "저장해줘", "앨범에 저장해줘", "사진 저장해줘"
+
+        11. "일반대화" - 위에 없는 다른 모든 질문들 (인사, 기분, 기타)
            예시: "안녕", "기분이 좋아", "화장실 어디야?", "언제 문 닫아?"
 
-        질문: "$question"
+        $historyContext
 
-        위 9가지 중 하나로만 답해줘! (일정, 목표/동기부여, 약물 안내, 생활기술, 사회성, 안전, 행동개선, 사물설명, 일반대화)
+        현재 질문: "$question"
+
+        위 11가지 중 하나로만 답해줘! (일정, 목표/동기부여, 약물 안내, 생활기술, 사회성, 안전, 행동개선, 사물설명, 그림그리기, 그림저장, 일반대화)
         """
 
         return try {
@@ -304,6 +600,8 @@ class GeminiViewModel : ViewModel() {
             }
             val response = generativeModel?.generateContent(content)
             val intent = response?.text?.trim() ?: "일반대화"
+
+            android.util.Log.d("GeminiViewModel", "의도 분석 결과: $intent (질문: $question)")
 
             // 응답 정리 및 매핑
             when {
@@ -315,6 +613,8 @@ class GeminiViewModel : ViewModel() {
                 intent.contains("안전") -> "안전"
                 intent.contains("행동개선") -> "행동개선"
                 intent.contains("사물설명") -> "사물설명"
+                intent.contains("그림그리기") -> "그림그리기"
+                intent.contains("그림저장") -> "그림저장"
                 else -> "일반대화"
             }
         } catch (e: Exception) {
@@ -326,12 +626,13 @@ class GeminiViewModel : ViewModel() {
     suspend fun askGemini(question: String, image: Bitmap? = null) {
         android.util.Log.d("GeminiViewModel", "askGemini 호출됨 - 질문: $question, recognizedCustomerId=$recognizedCustomerId, currentUser=${currentUser?.nickname}")
         try {
-            _state.value = _state.value.copy(isLoading = true, error = "", shouldShowChatBubble = false) // 새 질문 시작 시 버블 숨김
-
-            // 사용자 메시지를 대화 히스토리에 추가
-            val userMessage = ChatMessage("user", question)
-            chatHistory.add(userMessage)
-            limitChatHistory() // 대화 히스토리 크기 제한
+            // 새 대화 시작 시 이미지 표시만 숨김 (이미지는 메모리에 유지)
+            _state.value = _state.value.copy(
+                isLoading = true, 
+                error = "", 
+                shouldShowChatBubble = false,
+                shouldShowGeneratedImage = false // 이미지 표시만 숨김
+            )
 
             // 질문 의도 분석
             val questionIntent = analyzeQuestionIntent(question)
@@ -375,8 +676,26 @@ class GeminiViewModel : ViewModel() {
                 "안전" -> createSafetyPrompt(personalizedContext.isNotEmpty())
                 "행동개선" -> createBehaviorImprovementPrompt(personalizedContext.isNotEmpty())
                 "사물설명" -> createExplanationPrompt(personalizedContext.isNotEmpty())
+                "그림그리기" -> createDrawingPrompt(personalizedContext.isNotEmpty())
                 else -> createGeneralPrompt(personalizedContext.isNotEmpty())
             }
+
+            // 그림 그리기 의도인 경우 별도 처리
+            if (questionIntent == "그림그리기") {
+                handleDrawingRequest(question, personalizedContext)
+                return
+            }
+
+            // 그림 저장 의도인 경우 별도 처리
+            if (questionIntent == "그림저장") {
+                handleImageSaveRequest(question, personalizedContext)
+                return
+            }
+
+            // 일반 대화의 경우 사용자 메시지를 대화 히스토리에 추가
+            val userMessage = ChatMessage("user", question)
+            chatHistory.add(userMessage)
+            limitChatHistory() // 대화 히스토리 크기 제한
 
             // 대화 히스토리를 포함한 전체 대화 구성
             val conversationHistory = buildConversationHistory()
@@ -525,6 +844,31 @@ class GeminiViewModel : ViewModel() {
         [주의사항]
         - 약물 복용 시간이 지났으면 "약 복용 시간이 지났어! 약을 먹어야 해!"라고 안내해줘
         - 약물 복용 시 부작용이 발생했을 경우에는 즉각적인 도움을 요청해줘
+        """
+    }
+
+    // 그림 그리기 전용 프롬프트
+    private suspend fun createDrawingPrompt(hasCustomerInfo: Boolean): String {
+        return """
+        너는 발달장애인 친구들의 그림 그리기 요청을 처리하는 10대 소녀 AI Friend '리나'야!
+        
+        [그림 그리기 가이드라인]
+        1. 10대 소녀 친구처럼, 반말로, 친근하게
+        2. 사용자가 요청한 그림을 AI로 생성해줘
+        3. 개인 정보가 있으면 꼭 불러주고 응원해줘
+        4. 필요하면 이모지(🎨, 🖼️, ✨ 등)도 써줘
+        5. 그림 생성 중임을 알려주고 기다려달라고 안내해줘
+        6. 절대 존댓말/공손한 말투 사용 금지!
+        
+        [그림 그리기 예시]
+        - "누리야! 예쁜 꽃 그림을 그려줄게! 잠깐만 기다려~ 🎨"
+        - "하람이야! 멋진 풍경 그림을 만들어줄게! 조금만 기다려! 🖼️"
+        - "귀여운 강아지 그림을 그려줄게! 잠깐만 기다려~ ✨"
+        
+        [주의사항]
+        - 그림 생성에는 시간이 걸리므로 기다려달라고 안내해줘
+        - 생성된 그림을 보여주고 설명해줘
+        - 그림에 대한 피드백을 받고 개선점을 제안해줘
         """
     }
 

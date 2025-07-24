@@ -247,17 +247,27 @@ fun MainScreen(
                     
                     // Gemini 응답 표시 (최상단)
                     val animatedDots = remember { mutableStateOf(1) }
-                    if (state.isLoading || state.isVoiceDownloading) {
+                    if (state.isLoading || state.isVoiceDownloading || state.isGeneratingImage) {
                         // ... 점 애니메이션
-                        LaunchedEffect(state.isLoading, state.isVoiceDownloading) {
-                            while (state.isLoading || state.isVoiceDownloading) {
+                        LaunchedEffect(state.isLoading, state.isVoiceDownloading, state.isGeneratingImage) {
+                            while (state.isLoading || state.isVoiceDownloading || state.isGeneratingImage) {
                                 kotlinx.coroutines.delay(400)
                                 animatedDots.value = if (animatedDots.value == 3) 1 else animatedDots.value + 1
                             }
                             animatedDots.value = 1
                         }
-                        val labelText = if (state.isLoading) "thinking" else "voice generating"
+                        val labelText = when {
+                            state.isLoading -> "thinking"
+                            state.isVoiceDownloading -> "voice generating"
+                            state.isGeneratingImage -> "drawing"
+                            else -> "processing"
+                        }
                         val dots = ".".repeat(animatedDots.value)
+                        val progressText = if (state.isGeneratingImage && state.imageGenerationProgress.isNotEmpty()) {
+                            state.imageGenerationProgress
+                        } else {
+                            "$labelText $dots"
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -275,7 +285,7 @@ fun MainScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "$labelText $dots",
+                                        text = progressText,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold
@@ -381,6 +391,26 @@ fun MainScreen(
                                                 contentScale = ContentScale.Fit
                                             )
                                         }
+                                    }
+                                    
+                                    // AI 생성 이미지 표시
+                                    if (state.generatedImage != null && state.shouldShowGeneratedImage) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = "🎨 AI가 그린 그림",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Image(
+                                            bitmap = state.generatedImage!!.asImageBitmap(),
+                                            contentDescription = "AI 생성 이미지",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(200.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
                                     }
                                     
                                     // 결제 버튼 (제품 인식 시에만 표시)

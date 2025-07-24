@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val viewModel: GeminiViewModel = viewModel()
+                    val viewModel: GeminiViewModel = viewModel { GeminiViewModel(this@MainActivity) }
                     geminiViewModel = viewModel
                     viewModel.setMainActivity(this) // MainActivity 참조 설정
                     MainScreen(viewModel = viewModel)

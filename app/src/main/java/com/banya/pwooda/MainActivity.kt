@@ -87,6 +87,12 @@ class MainActivity : ComponentActivity() {
         }
     }
     
+    override fun onStart() {
+        super.onStart()
+        // 페이드 인 애니메이션 적용
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+    }
+    
     private fun checkAndRequestPermissions() {
         val permissions = arrayOf(
             Manifest.permission.CAMERA,

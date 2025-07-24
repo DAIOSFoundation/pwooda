@@ -93,10 +93,49 @@ class GeminiViewModel : ViewModel() {
             .map { it.content }
     }
 
+    // 대화 히스토리에서 특정 키워드 검색
+    fun searchChatHistory(keyword: String): List<ChatMessage> {
+        return chatHistory.filter { message ->
+            message.content.contains(keyword, ignoreCase = true)
+        }
+    }
+
+    // 대화 히스토리 요약 정보 가져오기
+    fun getChatSummary(): String {
+        if (chatHistory.isEmpty()) return "대화 기록이 없습니다."
+
+        val userMessages = chatHistory.filter { it.role == "user" }
+        val assistantMessages = chatHistory.filter { it.role == "assistant" }
+        
+        return """
+        대화 요약:
+        - 총 대화 수: ${chatHistory.size}개
+        - 사용자 질문: ${userMessages.size}개
+        - AI 응답: ${assistantMessages.size}개
+        - 최근 질문: ${userMessages.takeLast(3).joinToString(", ") { it.content.take(20) + "..." }}
+        """.trimIndent()
+    }
+
+    // 대화 히스토리에서 중요한 정보 추출
+    fun extractImportantInfo(): String {
+        val importantKeywords = listOf("이름", "나이", "목표", "일정", "약", "약물", "선호", "싫어", "좋아", "문제", "고민")
+        val relevantMessages = chatHistory.filter { message ->
+            importantKeywords.any { keyword ->
+                message.content.contains(keyword, ignoreCase = true)
+            }
+        }
+        
+        return if (relevantMessages.isNotEmpty()) {
+            "중요 정보: ${relevantMessages.takeLast(5).joinToString(" | ") { it.content.take(30) + "..." }}"
+        } else {
+            "중요 정보 없음"
+        }
+    }
+
     // 대화 히스토리 크기 제한 (메모리 효율성을 위해)
     private fun limitChatHistory() {
-        if (chatHistory.size > 20) { // 최대 20개 메시지 유지
-            val toRemove = chatHistory.size - 20
+        if (chatHistory.size > 50) { // 최대 50개 메시지 유지 (증가)
+            val toRemove = chatHistory.size - 50
             repeat(toRemove) {
                 chatHistory.removeAt(0) // 가장 오래된 메시지부터 제거
             }
@@ -109,33 +148,25 @@ class GeminiViewModel : ViewModel() {
     private fun buildConversationHistory(): String {
         if (chatHistory.isEmpty()) return ""
 
-        // 최근 10개의 사용자 질문만 추출하여 기억
-        val userQuestions = chatHistory
-            .filter { it.role == "user" }
-            .takeLast(10)
-            .mapIndexed { index, message -> 
-                "이전 질문 ${index + 1}: ${message.content}"
-            }
-
-        // 최근 3개의 AI 응답도 포함 (컨텍스트 유지를 위해)
-        val recentAIResponses = chatHistory
-            .filter { it.role == "assistant" }
-            .takeLast(3)
-            .mapIndexed { index, message -> 
-                "이전 답변 ${index + 1}: ${message.content}"
-            }
-
-        val historyParts = mutableListOf<String>()
+        // 전체 대화 히스토리를 시간순으로 구성 (최대 20개 메시지)
+        val recentMessages = chatHistory.takeLast(20)
         
-        if (userQuestions.isNotEmpty()) {
-            historyParts.add("기억하는 이전 질문들:\n${userQuestions.joinToString("\n")}")
-        }
-        
-        if (recentAIResponses.isNotEmpty()) {
-            historyParts.add("최근 답변들:\n${recentAIResponses.joinToString("\n")}")
-        }
+        val conversationHistory = recentMessages.mapIndexed { index, message ->
+            when (message.role) {
+                "user" -> "사용자: ${message.content}"
+                "assistant" -> "AI: ${message.content}"
+                else -> ""
+            }
+        }.filter { it.isNotEmpty() }
 
-        return historyParts.joinToString("\n\n")
+        if (conversationHistory.isEmpty()) return ""
+
+        return """
+        이전 대화 내용:
+        ${conversationHistory.joinToString("\n")}
+        
+        위의 대화 내용을 참고하여 다음 질문에 답변해주세요. 이전 대화에서 언급된 내용이나 맥락을 고려하여 일관성 있게 답변해주세요.
+        """.trimIndent()
     }
 
     // 질문에서 고객 정보 추출
@@ -349,7 +380,20 @@ class GeminiViewModel : ViewModel() {
 
             // 대화 히스토리를 포함한 전체 대화 구성
             val conversationHistory = buildConversationHistory()
-            val fullQuestion = "$systemPrompt\n\n${if (personalizedContext.isNotEmpty()) personalizedContext + "\n\n" else ""}$conversationHistory\n\n고객 질문: $question"
+            val importantInfo = extractImportantInfo()
+            val chatSummary = getChatSummary()
+            
+            val fullQuestion = """
+            $systemPrompt
+            
+            ${if (personalizedContext.isNotEmpty()) "개인 정보:\n$personalizedContext\n\n" else ""}
+            ${if (importantInfo != "중요 정보 없음") "중요 정보:\n$importantInfo\n\n" else ""}
+            $conversationHistory
+            
+            현재 질문: $question
+            
+            위의 대화 내용과 개인 정보를 참고하여 일관성 있고 개인화된 답변을 제공해주세요. 이전 대화에서 언급된 내용이나 사용자의 선호도, 상황 등을 고려해주세요.
+            """.trimIndent()
 
             android.util.Log.d("GeminiViewModel", "이미지 처리 - 이미지: ${if (image != null) "있음 (크기: ${image.width}x${image.height})" else "없음"}")
             val content = if (image != null) {

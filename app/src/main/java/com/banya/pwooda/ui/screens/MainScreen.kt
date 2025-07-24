@@ -41,6 +41,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.offset
+import android.net.Uri
+import android.widget.VideoView
+import androidx.compose.ui.viewinterop.AndroidView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,12 +146,25 @@ fun MainScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // 배경 이미지
-        Image(
-            painter = painterResource(id = R.drawable.totoro),
-            contentDescription = "Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+        // 배경 비디오
+        AndroidView(
+            factory = { context ->
+                VideoView(context).apply {
+                    // idling.mp4 파일을 VideoView에 설정
+                    val videoPath = "android.resource://" + context.packageName + "/" + R.raw.idling
+                    setVideoURI(Uri.parse(videoPath))
+                    
+                    // 비디오 루프 재생
+                    setOnPreparedListener { mp ->
+                        mp.isLooping = true
+                        mp.setVolume(0f, 0f) // 음소거
+                    }
+                    
+                    // 비디오 재생 시작
+                    start()
+                }
+            },
+            modifier = Modifier.fillMaxSize()
         )
         
         // 반투명 오버레이
@@ -205,7 +221,7 @@ fun MainScreen(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(70.dp))
                     
                     // 타이틀 + CI
                     Row(
@@ -453,6 +469,34 @@ fun MainScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                     
+                    // 대화 히스토리 정보 표시 (디버그용)
+                    if (state.chatHistory.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.Blue.copy(alpha = 0.1f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "대화 기록: ${state.chatHistory.size}개",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
+                                if (state.chatHistory.size > 0) {
+                                    Text(
+                                        text = "최근: ${state.chatHistory.last().content.take(30)}...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
 
                     
                     } // 스크롤 가능한 컨텐츠 영역 끝
@@ -484,6 +528,7 @@ fun MainScreen(
                             onValueChange = { currentQuestion = it },
                             label = { Text("질문을 입력하세요") },
                             modifier = Modifier.weight(1f),
+                            enabled = !state.isLoading && !state.isSpeaking && !state.isVoiceDownloading && !state.hasTTSError,
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), // 둥근 모퉁이
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color.White,
@@ -491,14 +536,17 @@ fun MainScreen(
                                 focusedLabelColor = Color.White,
                                 unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
                                 focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
+                                unfocusedTextColor = Color.White,
+                                disabledBorderColor = Color.Gray.copy(alpha = 0.5f),
+                                disabledLabelColor = Color.Gray.copy(alpha = 0.7f),
+                                disabledTextColor = Color.Gray.copy(alpha = 0.7f)
                             ),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 imeAction = androidx.compose.ui.text.input.ImeAction.Send
                             ),
                             keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                                 onSend = {
-                                    if (currentQuestion.isNotEmpty() && !state.isLoading) {
+                                    if (currentQuestion.isNotEmpty() && !state.isLoading && !state.isSpeaking && !state.isVoiceDownloading && !state.hasTTSError) {
                                         // 모든 TTS 중지 (AI 응답 + 환영 메시지)
                                         viewModel.stopAllTTS()
                                         Log.d("MainScreen", "텍스트 입력으로 askGemini 호출 - 이미지: ${if (capturedImage != null) "있음" else "없음"}")
@@ -522,6 +570,7 @@ fun MainScreen(
                                 showCamera = true
                                 viewModel.startCamera() // 카메라 활성화 상태 설정
                             },
+                            enabled = !state.isLoading && !state.isSpeaking && !state.isVoiceDownloading && !state.hasTTSError,
                             modifier = Modifier.size(56.dp)
                         ) {
                             Icon(
@@ -548,7 +597,7 @@ fun MainScreen(
                                     viewModel.startListening() // 음성 인식 시작 상태 설정
                                 }
                             },
-                            enabled = !isListening,
+                            enabled = !isListening && !state.isLoading && !state.isSpeaking && !state.isVoiceDownloading && !state.hasTTSError,
                             modifier = Modifier.size(56.dp)
                         ) {
                             Image(

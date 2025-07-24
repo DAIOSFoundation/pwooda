@@ -42,7 +42,7 @@ class SplashActivity : ComponentActivity() {
     private var musicPlayer: MediaPlayer? = null
     private var isMusicCompleted = false
     private var isVideoCompleted = false
-
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // intro_music.mp3 MediaPlayer 초기화 및 재생
@@ -70,10 +70,10 @@ class SplashActivity : ComponentActivity() {
         musicPlayer?.stop()
         musicPlayer?.release()
         musicPlayer = null
-        startActivity(Intent(this, MainActivity::class.java))
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-        finish()
-    }
+                    startActivity(Intent(this, MainActivity::class.java))
+                    overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                    finish()
+                }
 
     override fun onDestroy() {
         super.onDestroy()

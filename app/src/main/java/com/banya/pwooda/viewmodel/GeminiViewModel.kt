@@ -1274,28 +1274,28 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
 
     // 이름인식 의도 처리 함수
     private suspend fun handleNameRecognition(question: String) {
-        // val name = extractNameFromQuestion(question)
-        val name = extractNameWithGemini(question)
-        android.util.Log.d("GeminiViewModel", "[로그] 이름 추출 결과: $name")
-        if (name.isNullOrBlank()) {
-            val response = "이름을 잘 못 들었어요. 다시 한 번 또박또박 말해줄래요?"
-            addAssistantMessage(response)
-            speakText(response)
+        // 1. LLM에게 전체 응답을 받아서 화면+TTS에 그대로 사용
+        val prompt = """
+            아래 문장에서 사용자가 자기 이름을 말했으면, 친근하게 이름을 불러주고 환영하는 한 문장(예: '토니야, 반가워!')을 만들어줘. 이름이 없으면 '이름을 잘 못 들었어요. 다시 한 번 또박또박 말해줄래요?'라고 답해. 문장: \"$question\"
+        """.trimIndent()
+        val result = generativeModel?.generateContent(prompt)
+        val llmResponse = result?.text?.trim()?.replace("\"", "") ?: ""
+        if (llmResponse.isBlank() || llmResponse == "이름을 잘 못 들었어요. 다시 한 번 또박또박 말해줄래요?") {
+            addAssistantMessage("이름을 잘 못 들었어요. 다시 한 번 또박또박 말해줄래요?")
+            speakText("이름을 잘 못 들었어요. 다시 한 번 또박또박 말해줄래요?")
             return
         }
-        val userId = mainActivity?.findUserIdByRecognizedName(name)
-        android.util.Log.d("GeminiViewModel", "[로그] userId 매칭 결과: $userId")
-        if (userId != null) {
-            setRecognizedCustomerId(userId)
-            android.util.Log.d("GeminiViewModel", "[로그] setRecognizedCustomerId 호출됨: $userId")
-            val welcome = "${name}님, 반가워요! 앞으로 자주 이름 불러줄게요."
-            addAssistantMessage(welcome)
-            speakText(welcome)
-        } else {
-            val response = "앗! 등록된 이름이 아니래요. 다시 한 번 또박또박 말해줄래요?"
-            addAssistantMessage(response)
-            speakText(response)
+        // 2. 이름만 추출해서 등록(매칭) 시도 (등록 실패해도 환영 메시지는 그대로 노출)
+        val name = extractNameWithGemini(question)
+        if (!name.isNullOrBlank()) {
+            val userId = mainActivity?.findUserIdByRecognizedName(name)
+            if (userId != null) {
+                setRecognizedCustomerId(userId)
+            }
         }
+        // 3. LLM의 전체 응답을 화면+TTS에 그대로 사용
+        addAssistantMessage(llmResponse)
+        speakText(llmResponse)
     }
 
     // 어시스턴트 메시지 추가 함수 (간단 버전)

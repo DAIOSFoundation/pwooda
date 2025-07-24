@@ -44,6 +44,10 @@ import androidx.compose.ui.unit.offset
 import android.net.Uri
 import android.widget.VideoView
 import androidx.compose.ui.viewinterop.AndroidView
+import android.media.MediaPlayer
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ClipOp
+import android.graphics.BitmapFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +63,21 @@ fun MainScreen(
     var isListening by remember { mutableStateOf(false) }
     
     val state by viewModel.state.collectAsState()
+    
+    // 그림 생성 중 음악 재생/정지
+    val loadingMusicPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
+    LaunchedEffect(state.isGeneratingImage) {
+        if (state.isGeneratingImage) {
+            loadingMusicPlayer.value?.release()
+            loadingMusicPlayer.value = MediaPlayer.create(context, com.banya.pwooda.R.raw.loading_music)
+            loadingMusicPlayer.value?.isLooping = true
+            loadingMusicPlayer.value?.start()
+        } else {
+            loadingMusicPlayer.value?.stop()
+            loadingMusicPlayer.value?.release()
+            loadingMusicPlayer.value = null
+        }
+    }
     
     // 음성인식 런처
     val speechLauncher = rememberLauncherForActivityResult(
@@ -259,7 +278,7 @@ fun MainScreen(
                         val labelText = when {
                             state.isLoading -> "thinking"
                             state.isVoiceDownloading -> "voice generating"
-                            state.isGeneratingImage -> "drawing"
+                            state.isGeneratingImage -> "이미지 생성중"
                             else -> "processing"
                         }
                         val dots = ".".repeat(animatedDots.value)
@@ -268,28 +287,48 @@ fun MainScreen(
                         } else {
                             "$labelText $dots"
                         }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .padding(top = 30.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(24.dp),
-                                color = Color.Black.copy(alpha = 0.85f),
-                                tonalElevation = 2.dp
+                        
+                        // 이미지 생성 중일 때는 화면 중앙에 running.mp4 동영상 재생
+                        if (state.isGeneratingImage) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                SpriteSheetAnimationRaw(
+                                    frameWidth = 142,
+                                    frameHeight = 142,
+                                    colCount = 5,
+                                    rowCount = 9,
+                                    frameDurationMs = 66,
+                                    totalFrames = 43
+                                )
+                            }
+                        } else {
+                            // 일반적인 로딩 상태 (thinking, voice generating 등)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .padding(top = 30.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(24.dp),
+                                    color = Color.Black.copy(alpha = 0.85f),
+                                    tonalElevation = 2.dp
                                 ) {
-                                    Text(
-                                        text = progressText,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = progressText,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -411,6 +450,24 @@ fun MainScreen(
                                                 .height(200.dp),
                                             contentScale = ContentScale.Fit
                                         )
+                                    }
+                                    
+                                    // 완성된 이미지 표시 (shouldShowGeneratedImage && generatedImage != null)
+                                    if (state.shouldShowGeneratedImage && state.generatedImage != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(24.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                bitmap = state.generatedImage.asImageBitmap(),
+                                                contentDescription = "완성된 그림",
+                                                modifier = Modifier
+                                                    .size(300.dp)
+                                                    .clip(RoundedCornerShape(32.dp))
+                                            )
+                                        }
                                     }
                                     
                                     // 결제 버튼 (제품 인식 시에만 표시)
@@ -743,6 +800,54 @@ private fun startSpeechRecognition(
     }
     
     launcher.launch(intent)
+}
+
+@Composable
+fun SpriteSheetAnimationRaw(
+    frameWidth: Int = 150,
+    frameHeight: Int = 150,
+    colCount: Int = 5,
+    rowCount: Int = 9,
+    frameDurationMs: Long = 66, // 1초에 약 15프레임
+    totalFrames: Int = 43, // 마지막 두 컷 제외
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val spriteSheet = remember {
+        val inputStream = context.resources.openRawResource(
+            context.resources.getIdentifier("drawing_sheet", "raw", context.packageName)
+        )
+        BitmapFactory.decodeStream(inputStream)
+    }
+    var currentFrame by remember { mutableStateOf(0) }
+    LaunchedEffect(totalFrames) {
+        while (true) {
+            kotlinx.coroutines.delay(frameDurationMs)
+            currentFrame = (currentFrame + 1) % totalFrames
+        }
+    }
+    val frameBitmap = remember(currentFrame, spriteSheet) {
+        val x = (currentFrame % colCount) * frameWidth
+        val y = (currentFrame / colCount) * frameHeight
+        Bitmap.createBitmap(
+            spriteSheet,
+            x,
+            y,
+            frameWidth,
+            frameHeight
+        )
+    }
+    Box(
+        modifier = modifier.size(150.dp), // 배경색 제거
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            bitmap = frameBitmap.asImageBitmap(),
+            contentDescription = "애니메이션",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(150.dp) // 배경색 제거
+        )
+    }
 }
 
 @Preview(showBackground = true, name = "MainScreen Preview")

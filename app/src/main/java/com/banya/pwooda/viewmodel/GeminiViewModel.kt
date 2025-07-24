@@ -320,7 +320,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                         response = errorResponse,
                         chatHistory = chatHistory.toList(),
                         isGeneratingImage = false,
-                        imageGenerationProgress = ""
+                        imageGenerationProgress = "",
+                        isLoading = false // 로딩 상태 해제
                     )
                 }
             } else {
@@ -333,7 +334,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                     response = errorResponse,
                     chatHistory = chatHistory.toList(),
                     isGeneratingImage = false,
-                    imageGenerationProgress = ""
+                    imageGenerationProgress = "",
+                    isLoading = false // 로딩 상태 해제
                 )
             }
             
@@ -347,7 +349,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                 response = errorResponse,
                 chatHistory = chatHistory.toList(),
                 isGeneratingImage = false,
-                imageGenerationProgress = ""
+                imageGenerationProgress = "",
+                isLoading = false // 로딩 상태 해제
             )
         }
     }
@@ -372,7 +375,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                 _state.value = _state.value.copy(
                     response = errorResponse,
                     chatHistory = chatHistory.toList(),
-                    shouldShowChatBubble = true
+                    shouldShowChatBubble = true,
+                    isLoading = false // 로딩 상태 해제
                 )
                 
                 speakText(errorResponse)
@@ -399,7 +403,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
             _state.value = _state.value.copy(
                 response = response,
                 chatHistory = chatHistory.toList(),
-                shouldShowChatBubble = true
+                shouldShowChatBubble = true,
+                isLoading = false // 로딩 상태 해제
             )
             
             // TTS로 응답 읽기
@@ -414,7 +419,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
             _state.value = _state.value.copy(
                 response = errorResponse,
                 chatHistory = chatHistory.toList(),
-                shouldShowChatBubble = true
+                shouldShowChatBubble = true,
+                isLoading = false // 로딩 상태 해제
             )
             
             speakText(errorResponse)
@@ -644,8 +650,8 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
                 currentSchedule = customerDataService?.getScheduleByUserId(recognizedCustomerId!!)
             }
             // 맞춤형 컨텍스트 생성
-            val today = java.time.LocalDate.now().dayOfWeek.name.substring(0,3)
-            val todaySchedule = currentSchedule?.schedule?.get(today) ?: emptyList()
+            val todayKey = getTodayKey()
+            val todaySchedule = currentSchedule?.schedule?.get(todayKey) ?: emptyList()
             val goal = currentUser?.goal ?: ""
             val motivation = currentUser?.motivation ?: ""
             val feedback = currentUser?.feedback?.joinToString("\n") ?: ""
@@ -1199,5 +1205,18 @@ class GeminiViewModel(private val context: Context) : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         ttsService?.release()
+    }
+
+    // 요일 키 매핑 함수 (data.json의 키와 일치)
+    private fun getTodayKey(): String {
+        return when (java.time.LocalDate.now().dayOfWeek) {
+            java.time.DayOfWeek.MONDAY -> "Mon"
+            java.time.DayOfWeek.TUESDAY -> "Tue"
+            java.time.DayOfWeek.WEDNESDAY -> "Wed"
+            java.time.DayOfWeek.THURSDAY -> "Thu"
+            java.time.DayOfWeek.FRIDAY -> "Fri"
+            java.time.DayOfWeek.SATURDAY -> "Sat"
+            java.time.DayOfWeek.SUNDAY -> "Sun"
+        }
     }
 }

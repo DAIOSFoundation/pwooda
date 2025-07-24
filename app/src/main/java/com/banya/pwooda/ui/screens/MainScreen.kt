@@ -442,18 +442,6 @@ fun MainScreen(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Image(
-                                            bitmap = state.generatedImage!!.asImageBitmap(),
-                                            contentDescription = "AI 생성 이미지",
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(200.dp),
-                                            contentScale = ContentScale.Fit
-                                        )
-                                    }
-                                    
-                                    // 완성된 이미지 표시 (shouldShowGeneratedImage && generatedImage != null)
-                                    if (state.shouldShowGeneratedImage && state.generatedImage != null) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -461,7 +449,26 @@ fun MainScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Image(
-                                                bitmap = state.generatedImage.asImageBitmap(),
+                                                bitmap = state.generatedImage!!.asImageBitmap(),
+                                                contentDescription = "완성된 그림",
+                                                modifier = Modifier
+                                                    .size(300.dp)
+                                                    .clip(RoundedCornerShape(32.dp))
+                                            )
+                                        }
+                                    }
+                                    
+                                    // 완성된 이미지 표시 (shouldShowGeneratedImage && generatedImage != null)
+                                    val generatedImage = state.generatedImage
+                                    if (state.shouldShowGeneratedImage && generatedImage != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(24.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                bitmap = generatedImage.asImageBitmap(),
                                                 contentDescription = "완성된 그림",
                                                 modifier = Modifier
                                                     .size(300.dp)

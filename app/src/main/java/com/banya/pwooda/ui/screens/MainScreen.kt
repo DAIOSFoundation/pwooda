@@ -432,32 +432,6 @@ fun MainScreen(
                                         }
                                     }
                                     
-                                    // AI 생성 이미지 표시
-                                    if (state.generatedImage != null && state.shouldShowGeneratedImage) {
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                        Text(
-                                            text = "🎨 AI가 그린 그림",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(24.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Image(
-                                                bitmap = state.generatedImage!!.asImageBitmap(),
-                                                contentDescription = "완성된 그림",
-                                                modifier = Modifier
-                                                    .size(300.dp)
-                                                    .clip(RoundedCornerShape(32.dp))
-                                            )
-                                        }
-                                    }
-                                    
                                     // 완성된 이미지 표시 (shouldShowGeneratedImage && generatedImage != null)
                                     val generatedImage = state.generatedImage
                                     if (state.shouldShowGeneratedImage && generatedImage != null) {

@@ -1,214 +1,214 @@
-# 피우다 (Pwooda) - 발달장애인 도우미 앱
+# Pwooda - Life Help Agent App for Developmental Disabilities, Mental Retardation
 
-## 📱 프로젝트 개요
+## 📱 Project Overview
 
-피우다는 발달장애인의 일상생활을 돕기 위한 AI 기반 안드로이드 애플리케이션입니다. 개인별 맞춤형 데이터와 복지기관 프로그램을 기반으로 동기부여, 일정 안내, 행동 개선 팁 등을 제공하며, 음성 대화와 AI 이미지 생성 기능을 통해 더욱 풍부한 상호작용을 지원합니다.
+Pwooda is an AI-based Android application designed to help people with developmental disabilities in their daily lives. It provides personalized motivation, schedule guidance, behavior improvement tips, and more based on individual data and welfare facility programs. Through voice conversations and AI image generation, it offers rich interactions for users.
 
-## ✨ 주요 기능
+## ✨ Key Features
 
-### 🤖 AI 기반 맞춤형 서비스
-- **개인별 데이터 기반 맞춤형 컨텐츠**: 사용자의 관심사, 일정, 목표 등을 기반으로 한 맞춤형 서비스
-- **11가지 서비스 카테고리**: 일정, 동기부여, 약물 안내, 생활기술, 사회성, 안전, 행동개선, 사물설명, 일반대화, 이미지 생성, 이미지 저장
-- **대화 히스토리 기반 의도 분석**: 이전 대화 맥락을 고려한 정확한 의도 파악
-- **연속성 있는 대화**: 최근 10개 사용자 질문과 3개 AI 응답을 기억하여 자연스러운 대화 진행
+### 🤖 AI-Based Personalized Services
+- **Personalized Content Based on Individual Data**: Customized services based on user interests, schedules, goals, etc.
+- **11 Service Categories**: Schedule, motivation, medication guidance, life skills, social skills, safety, behavior improvement, object explanation, general conversation, image generation, image saving
+- **Conversation History-Based Intent Analysis**: Accurate intent understanding considering previous conversation context
+- **Continuous Conversations**: Remembers the last 10 user questions and 3 AI responses for natural conversation flow
 
-### 🎤 음성 상호작용
-- **음성 인식**: 사용자의 음성 입력을 텍스트로 변환
-- **TTS (Text-to-Speech)**: AI 응답을 자연스러운 음성으로 출력
-- **10대 소녀 말투**: 친근하고 귀여운 말투로 사용자와 소통
+### 🎤 Voice Interaction
+- **Speech Recognition**: Converts user voice input to text
+- **TTS (Text-to-Speech)**: Outputs AI responses in natural voice
+- **Teenage Girl Tone**: Communicates with users in a friendly and cute tone
 
-### 👤 사용자 인식
-- **얼굴 인식 기반 사용자 식별**: 카메라로 사용자 얼굴을 감지하여 개인별 맞춤 서비스 제공
-- **사용자 등록**: 최초 인식 시 이름을 물어보고 등록
-- **개인별 데이터 매핑**: 등록된 사용자 정보와 연동
+### 👤 User Recognition
+- **Face Recognition-Based User Identification**: Detects user faces through camera to provide personalized services
+- **User Registration**: Asks for name during first recognition and registers
+- **Personal Data Mapping**: Links with registered user information
 
-### 📷 카메라 기능
-- **사물 인식**: 카메라로 촬영한 사물에 대한 설명 제공
-- **일정 연관성 분석**: 촬영한 사물과 사용자의 일정/프로그램과의 연관성 안내
+### 📷 Camera Features
+- **Object Recognition**: Provides descriptions of objects photographed with camera
+- **Schedule Relevance Analysis**: Guides the relationship between photographed objects and user's schedule/programs
 
-### 🎨 AI 이미지 생성
-- **ComfyUI 기반 로컬 이미지 생성**: 빠르고 안전한 로컬 이미지 생성
-- **Gemini 기반 한글-영문 프롬프트 변환**: 사용자의 한글 요청을 정확한 영문 프롬프트로 변환
-- **배경 없는 지브리 스타일**: 투명 배경과 지브리 스타일로 깔끔하고 아름다운 이미지 생성
-- **실시간 이미지 생성**: 15-20초 내 고품질 이미지 생성
+### 🎨 AI Image Generation
+- **ComfyUI-Based Local Image Generation**: Fast and secure local image generation
+- **Gemini-Based Korean-English Prompt Translation**: Converts user's Korean requests to accurate English prompts
+- **Background-Free Ghibli Style**: Creates clean and beautiful images with transparent backgrounds and Ghibli style
+- **Real-Time Image Generation**: High-quality image generation within 15-20 seconds
 
-### 💾 이미지 저장 기능
-- **갤러리 저장**: 생성된 이미지를 안드로이드 기본 사진 앨범에 저장
-- **자동 폴더 생성**: `Pictures/Pwooda` 폴더에 자동 저장
-- **저장 의도 인식**: "그림 저장해줘", "앨범에 저장해줘" 등 저장 요청 자동 인식
+### 💾 Image Saving Feature
+- **Gallery Storage**: Saves generated images to Android's default photo album
+- **Automatic Folder Creation**: Automatically saves to `Pictures/Pwooda` folder
+- **Save Intent Recognition**: Automatically recognizes save requests like "save the picture", "save to album"
 
-## 🏗️ 기술 스택
+## 🏗️ Technology Stack
 
-### Android 앱
-- **언어**: Kotlin
-- **UI 프레임워크**: Jetpack Compose
-- **아키텍처**: MVVM (Model-View-ViewModel)
-- **네트워킹**: OkHttp
-- **JSON 처리**: JSONObject/JSONArray
-- **이미지 처리**: Bitmap, Base64 인코딩/디코딩
-- **갤러리 저장**: MediaStore API
-- **권한 관리**: Context 기반 갤러리 접근
+### Android App
+- **Language**: Kotlin
+- **UI Framework**: Jetpack Compose
+- **Architecture**: MVVM (Model-View-ViewModel)
+- **Networking**: OkHttp
+- **JSON Processing**: JSONObject/JSONArray
+- **Image Processing**: Bitmap, Base64 encoding/decoding
+- **Gallery Storage**: MediaStore API
+- **Permission Management**: Context-based gallery access
 
-### AI 서비스
-- **자연어 처리**: Google Gemini API
-- **음성 합성**: Google Cloud TTS
-- **얼굴 인식**: ML Kit Face Detection
-- **이미지 생성**: ComfyUI (로컬 서버)
+### AI Services
+- **Natural Language Processing**: Google Gemini API
+- **Speech Synthesis**: Google Cloud TTS
+- **Face Recognition**: ML Kit Face Detection
+- **Image Generation**: ComfyUI (local server)
 
-### ComfyUI 서버
+### ComfyUI Server
 - **Python**: 3.10.18
 - **PyTorch**: 2.7.1
 - **ComfyUI**: 0.3.45
-- **하드웨어 가속**: MPS (Metal Performance Shaders)
-- **모델**: SDXL (Stable Diffusion XL)
-- **이미지 크기**: 512x512 (최적화)
-- **샘플링 스텝**: 20 (지브리 스타일용)
+- **Hardware Acceleration**: MPS (Metal Performance Shaders)
+- **Model**: SDXL (Stable Diffusion XL)
+- **Image Size**: 512x512 (optimized)
+- **Sampling Steps**: 20 (for Ghibli style)
 
-### 네트워크 및 보안
-- **HTTP 통신**: 로컬 ComfyUI 서버 접근
-- **Network Security Config**: HTTP 통신 허용 설정
-- **IP 주소**: `192.168.219.122:8000` (Mac M4 로컬 서버)
-- **타임아웃**: 120초 (이미지 생성용)
+### Network and Security
+- **HTTP Communication**: Local ComfyUI server access
+- **Network Security Config**: HTTP communication allowance settings
+- **IP Address**: `192.168.219.122:8000` (Mac M4 local server)
+- **Timeout**: 120 seconds (for image generation)
 
-### 권한 관리
-- **WRITE_EXTERNAL_STORAGE**: Android 9 이하 갤러리 쓰기
-- **READ_EXTERNAL_STORAGE**: Android 13 이하 갤러리 읽기
-- **MediaStore API**: Android 10+ Scoped Storage 지원
+### Permission Management
+- **WRITE_EXTERNAL_STORAGE**: Gallery write for Android 9 and below
+- **READ_EXTERNAL_STORAGE**: Gallery read for Android 13 and below
+- **MediaStore API**: Android 10+ Scoped Storage support
 
-## 📊 서비스 카테고리
+## 📊 Service Categories
 
-| 번호 | 카테고리 | 설명 | 예시 |
-|------|----------|------|------|
-| 1 | 일정 | 오늘 일정, 스케줄, 프로그램 안내 | "오늘 뭐해?", "일정 알려줘" |
-| 2 | 목표/동기부여 | 목표, 동기부여, 응원, 칭찬 | "목표가 뭐야?", "동기부여해줘" |
-| 3 | 약물 안내 | 약물 복용, 부작용, 응급상황 | "약 언제 먹어?", "약 부작용 뭐야?" |
-| 4 | 생활기술 | 일상생활 기술, 요리, 청소, 개인위생 | "손 씻는 법 알려줘", "양치질 어떻게 해?" |
-| 5 | 사회성 | 대화, 인사, 친구관계, 사회적 상황 | "인사 어떻게 해?", "친구랑 어떻게 대화해?" |
-| 6 | 안전 | 안전, 보호, 위험상황, 응급처치 | "119 언제 불러?", "화재 났어" |
-| 7 | 행동개선 | 행동 개선, 감정 표현, 불안 해소 | "화가 나", "불안해" |
-| 8 | 사물설명 | 사물, 물건, 사진에 대한 설명 요청 | "이게 뭐야?", "이거 설명해줘" |
-| 9 | 그림그리기 | 그림 그리기, 이미지 생성 요청 | "그림 그려줘", "이미지 만들어줘" |
-| 10 | 그림저장 | 생성된 그림을 저장하는 요청 | "그림 저장해줘", "앨범에 저장해줘" |
-| 11 | 일반대화 | 기타 모든 질문들 | "안녕", "기분이 좋아" |
+| No. | Category | Description | Example |
+|-----|----------|-------------|---------|
+| 1 | Schedule | Today's schedule, schedule, program guidance | "What's today's plan?", "Tell me the schedule" |
+| 2 | Goals/Motivation | Goals, motivation, encouragement, praise | "What's your goal?", "Motivate me" |
+| 3 | Medication Guidance | Medication intake, side effects, emergency situations | "When should I take medicine?", "What are the side effects?" |
+| 4 | Life Skills | Daily living skills, cooking, cleaning, personal hygiene | "How do I wash hands?", "How do I brush teeth?" |
+| 5 | Social Skills | Conversation, greetings, friendships, social situations | "How do I greet?", "How do I talk with friends?" |
+| 6 | Safety | Safety, protection, dangerous situations, first aid | "When should I call 119?", "There's a fire" |
+| 7 | Behavior Improvement | Behavior improvement, emotional expression, anxiety relief | "I'm angry", "I'm anxious" |
+| 8 | Object Explanation | Requests for explanation of objects, items, photos | "What's this?", "Explain this" |
+| 9 | Drawing | Drawing requests, image generation requests | "Draw a picture", "Create an image" |
+| 10 | Save Drawing | Requests to save generated drawings | "Save the picture", "Save to album" |
+| 11 | General Conversation | All other questions | "Hello", "I'm feeling good" |
 
-## 🚀 사용법
+## 🚀 Usage
 
-### 1. 앱 실행 및 권한 허용
+### 1. App Launch and Permission Grant
 ```bash
-# 앱을 실행하면 다음 권한을 요청합니다
-- 카메라 권한
-- 마이크 권한
-- 갤러리 저장 권한 (Android 9 이하)
+# When launching the app, the following permissions are requested
+- Camera permission
+- Microphone permission
+- Gallery storage permission (Android 9 and below)
 ```
 
-### 2. 최초 사용자 등록
+### 2. First-Time User Registration
 ```
-1. 카메라에 얼굴이 감지되면 음성 안내
-   "안녕! 혹시 네 이름이 뭐야? 예쁘게 말해줘!"
+1. When a face is detected by camera, voice guidance
+   "Hello! What's your name? Please say it clearly!"
 
-2. 이름을 또박또박 말하면 사용자 등록 완료
-   - 등록된 이름이 아닐 경우 다시 안내
+2. When name is spoken clearly, user registration completes
+   - If the name is not registered, guidance is repeated
 
-3. 등록 완료 후 개인별 맞춤 서비스 시작
-```
-
-### 3. 음성 대화
-```
-사용자: "오늘 일정 알려줘"
-AI: "누리야! 오늘은 9시 아침 운동, 10시 미술 활동이야~ 😊"
-
-사용자: "그거 언제야?"
-AI: "아까 말한 일정 기억해? 9시에 아침 운동, 10시에 미술 활동이야!"
+3. After registration, personalized services begin
 ```
 
-### 4. AI 이미지 생성
+### 3. Voice Conversation
 ```
-사용자: "귀여운 강아지 그림 그려줘"
-AI: "그림을 그려줄게! 잠깐만 기다려."
-→ Gemini가 한글 요청을 영문 프롬프트로 변환
-→ ComfyUI에서 지브리 스타일 + 투명 배경으로 이미지 생성
-→ 15-20초 후 완성된 이미지 표시
+User: "Tell me today's schedule"
+AI: "Nuri! Today you have morning exercise at 9 AM, art activity at 10 AM~ 😊"
+
+User: "When is that?"
+AI: "Remember what I said earlier? Morning exercise at 9 AM, art activity at 10 AM!"
 ```
 
-### 5. 이미지 저장
+### 4. AI Image Generation
 ```
-사용자: "그림 저장해줘"
-AI: "그림을 갤러리에 저장했어요!"
-→ Pictures/Pwooda 폴더에 자동 저장
-→ 파일명: Pwooda_타임스탬프.jpg
-```
-
-### 6. 카메라 사물 인식
-```
-1. 카메라 버튼 클릭
-2. 사물을 비추면 자동 인식
-3. 사물 설명 + 오늘 일정과의 연관성 안내
+User: "Draw a cute puppy"
+AI: "I'll draw a picture for you! Please wait a moment."
+→ Gemini converts Korean request to English prompt
+→ ComfyUI generates image with Ghibli style + transparent background
+→ Completed image displayed after 15-20 seconds
 ```
 
-## 🔧 설치 및 실행
+### 5. Image Saving
+```
+User: "Save the picture"
+AI: "I've saved the picture to your gallery!"
+→ Automatically saved to Pictures/Pwooda folder
+→ Filename: Pwooda_timestamp.jpg
+```
 
-### ComfyUI 서버 설정
+### 6. Camera Object Recognition
+```
+1. Click camera button
+2. Point at object for automatic recognition
+3. Object description + guidance on relevance to today's schedule
+```
 
-#### 1. ComfyUI 설치 및 설정
+## 🔧 Installation and Setup
+
+### ComfyUI Server Setup
+
+#### 1. ComfyUI Installation and Configuration
 ```bash
-# ComfyUI 디렉토리로 이동
+# Navigate to ComfyUI directory
 cd /Users/tony/ComfyUI
 
-# 가상환경 활성화
+# Activate virtual environment
 source venv/bin/activate
 
-# MPS 최적화와 함께 서버 실행
+# Run server with MPS optimization
 PYTORCH_ENABLE_MPS_FALLBACK=1 python main.py --listen 0.0.0.0 --port 8000 --use-split-cross-attention
 ```
 
-#### 2. 서버 상태 확인
+#### 2. Server Status Check
 ```bash
-# 서버 접속 확인
+# Check server connection
 curl http://192.168.219.122:8000
 
-# 로그 확인
-# - MPS 가속 활성화 확인
-# - SDXL 모델 로드 확인
-# - 이미지 생성 성공 로그 확인
+# Check logs
+# - Verify MPS acceleration activation
+# - Verify SDXL model loading
+# - Verify successful image generation logs
 ```
 
-### Android 앱 빌드 및 설치
+### Android App Build and Installation
 
-#### 1. 프로젝트 빌드
+#### 1. Project Build
 ```bash
-# 프로젝트 디렉토리로 이동
+# Navigate to project directory
 cd /Users/tony/AndroidProjects/pwooda
 
-# Gradle 빌드
+# Gradle build
 ./gradlew assembleDebug
 ```
 
-#### 2. APK 설치
+#### 2. APK Installation
 ```bash
-# 디바이스에 APK 설치
+# Install APK on device
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-# 설치 확인
+# Verify installation
 adb shell pm list packages | grep pwooda
 ```
 
-## 📁 프로젝트 구조
+## 📁 Project Structure
 
 ```
 pwooda/
 ├── app/
 │   ├── src/main/
 │   │   ├── java/com/banya/pwooda/
-│   │   │   ├── data/                    # 데이터 모델
+│   │   │   ├── data/                    # Data models
 │   │   │   │   ├── CustomerData.kt
 │   │   │   │   └── ProductData.kt
-│   │   │   ├── service/                 # 서비스 클래스
-│   │   │   │   ├── FalAIService.kt      # ComfyUI 이미지 생성
+│   │   │   ├── service/                 # Service classes
+│   │   │   │   ├── FalAIService.kt      # ComfyUI image generation
 │   │   │   │   ├── GoogleCloudTTSService.kt
 │   │   │   │   ├── CustomerDataService.kt
 │   │   │   │   └── PaymentService.kt
 │   │   │   ├── viewmodel/
-│   │   │   │   └── GeminiViewModel.kt   # 메인 ViewModel
+│   │   │   │   └── GeminiViewModel.kt   # Main ViewModel
 │   │   │   ├── ui/
 │   │   │   │   ├── screens/
 │   │   │   │   │   └── MainScreen.kt
@@ -219,7 +219,7 @@ pwooda/
 │   │   │   ├── MainActivity.kt
 │   │   │   └── SplashActivity.kt
 │   │   ├── assets/
-│   │   │   ├── data.json               # 사용자 데이터
+│   │   │   ├── data.json               # User data
 │   │   │   └── google_tts_key.json
 │   │   └── res/
 │   │       ├── xml/
@@ -230,34 +230,34 @@ pwooda/
 └── README.md
 ```
 
-## 🎯 핵심 기능 상세
+## 🎯 Core Features Detail
 
-### 대화 히스토리 기반 의도 분석
+### Conversation History-Based Intent Analysis
 ```kotlin
-// 최근 6개 대화 메시지를 의도 분석에 포함
+// Include recent 6 conversation messages in intent analysis
 val recentHistory = chatHistory.takeLast(6)
 val historyContext = if (recentHistory.isNotEmpty()) {
-    "이전 대화:\n" + recentHistory.joinToString("\n") { "${it.role}: ${it.content}" }
+    "Previous conversation:\n" + recentHistory.joinToString("\n") { "${it.role}: ${it.content}" }
 } else {
-    "이전 대화 없음"
+    "No previous conversation"
 }
 ```
 
-### Gemini 기반 프롬프트 변환
+### Gemini-Based Prompt Translation
 ```kotlin
-// 한글 요청을 영문 이미지 생성 프롬프트로 변환
+// Convert Korean request to English image generation prompt
 val translationPrompt = """
-    사용자가 그림 그리기를 요청했습니다. 다음 요청을 영문 이미지 생성 프롬프트로 변환해줘.
+    The user has requested to draw a picture. Please convert the following request to an English image generation prompt.
     
-    요구사항:
-    1. 사용자의 요청을 영어로 번역하고, 이미지 생성에 적합한 키워드로 변환
-    2. 배경 없는 이미지로 생성되도록 "transparent background, no background, isolated" 추가
-    3. 지브리 스타일로 생성되도록 "Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere" 추가
-    4. 고품질 이미지로 생성되도록 "detailed, high quality, masterpiece" 추가
+    Requirements:
+    1. Translate the user's request to English and convert it to keywords suitable for image generation
+    2. Add "transparent background, no background, isolated" to generate images without background
+    3. Add "Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere" to generate in Ghibli style
+    4. Add "detailed, high quality, masterpiece" to generate high-quality images
 """
 ```
 
-### ComfyUI 워크플로우 구조
+### ComfyUI Workflow Structure
 ```json
 {
   "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"}},
@@ -270,115 +270,115 @@ val translationPrompt = """
 }
 ```
 
-## 🔄 최근 업데이트 (2024년 12월)
+## 🔄 Recent Updates (December 2024)
 
-### v2.0 - 대화 히스토리 기반 의도 분석
-- **대화 히스토리 통합**: 최근 6개 대화 메시지를 의도 분석에 포함
-- **맥락 기반 의도 파악**: 이전 대화를 고려한 정확한 의도 분석
-- **연속성 있는 대화**: "그거 언제야?", "다시 그려줘" 등 맥락 의존적 질문 정확 인식
+### v2.0 - Conversation History-Based Intent Analysis
+- **Conversation History Integration**: Includes recent 6 conversation messages in intent analysis
+- **Context-Based Intent Understanding**: Accurate intent analysis considering previous conversations
+- **Continuous Conversations**: Accurate recognition of context-dependent questions like "When is that?", "Draw it again"
 
-### v1.9 - 이미지 저장 기능
-- **갤러리 저장**: 생성된 이미지를 안드로이드 기본 사진 앨범에 저장
-- **MediaStore API**: Android 10+ Scoped Storage 지원
-- **저장 의도 인식**: "그림 저장해줘", "앨범에 저장해줘" 등 자동 인식
-- **오류 처리**: 저장할 이미지가 없을 경우 안내 메시지
+### v1.9 - Image Saving Feature
+- **Gallery Storage**: Saves generated images to Android's default photo album
+- **MediaStore API**: Android 10+ Scoped Storage support
+- **Save Intent Recognition**: Automatic recognition of "save the picture", "save to album"
+- **Error Handling**: Guidance message when no image to save
 
-### v1.8 - 대화 히스토리 관리 개선
-- **그림 그리기 대화 기록**: 그림 그리기와 저장 요청이 대화 히스토리에 정상 기록
-- **이미지 클리어링**: 새 대화 시작 시 이전 이미지 자동 삭제
-- **연속성 보장**: 모든 상호작용이 대화 히스토리에 기록되어 맥락 유지
+### v1.8 - Conversation History Management Improvement
+- **Drawing Conversation Recording**: Drawing and save requests properly recorded in conversation history
+- **Image Clearing**: Previous images automatically deleted when starting new conversation
+- **Continuity Assurance**: All interactions recorded in conversation history to maintain context
 
-### v1.7 - Gemini 기반 한글-영문 프롬프트 변환
-- **한글 요청 지원**: 사용자의 한글 요청을 직접 받아 처리
-- **Gemini 번역**: 한글 요청을 정확한 영문 프롬프트로 변환
-- **SDXL 한계 해결**: SDXL 모델의 한글 이해 한계 문제 해결
-- **더 정확한 이미지**: 의도에 맞는 정확한 이미지 생성
+### v1.7 - Gemini-Based Korean-English Prompt Translation
+- **Korean Request Support**: Directly receives and processes user's Korean requests
+- **Gemini Translation**: Converts Korean requests to accurate English prompts
+- **SDXL Limitation Resolution**: Solves SDXL model's Korean understanding limitation
+- **More Accurate Images**: Generates accurate images matching user intent
 
-### v1.6 - 배경 없는 지브리 스타일 이미지
-- **투명 배경**: 배경 없는 깔끔한 이미지 생성
-- **지브리 스타일**: Studio Ghibli 스타일 프롬프트 자동 적용
-- **고품질 최적화**: detailed, high quality, masterpiece 키워드 추가
-- **일관된 스타일**: 모든 이미지가 동일한 아트 스타일로 생성
+### v1.6 - Background-Free Ghibli Style Images
+- **Transparent Background**: Generates clean images without background
+- **Ghibli Style**: Automatically applies Studio Ghibli style prompts
+- **High-Quality Optimization**: Adds detailed, high quality, masterpiece keywords
+- **Consistent Style**: All images generated in same art style
 
-### v1.5 - ComfyUI 기반 이미지 생성
-- **로컬 이미지 생성**: ComfyUI 서버를 통한 빠르고 안전한 이미지 생성
-- **SDXL 모델**: 고품질 Stable Diffusion XL 모델 사용
-- **MPS 가속**: Apple Silicon GPU 가속으로 성능 최적화
-- **512x512 최적화**: 빠른 생성과 품질의 균형
+### v1.5 - ComfyUI-Based Image Generation
+- **Local Image Generation**: Fast and secure image generation through ComfyUI server
+- **SDXL Model**: Uses high-quality Stable Diffusion XL model
+- **MPS Acceleration**: Performance optimization with Apple Silicon GPU acceleration
+- **512x512 Optimization**: Balance between fast generation and quality
 
-### v1.4 - 네트워크 보안 설정
-- **HTTP 통신 허용**: 로컬 ComfyUI 서버 접근을 위한 Network Security Config
-- **IP 주소 설정**: Mac M4 로컬 서버 (192.168.219.122:8000) 접근 허용
-- **AndroidManifest.xml**: 보안 설정 적용
+### v1.4 - Network Security Configuration
+- **HTTP Communication Allowance**: Network Security Config for local ComfyUI server access
+- **IP Address Setting**: Allows access to Mac M4 local server (192.168.219.122:8000)
+- **AndroidManifest.xml**: Security settings applied
 
-### v1.3 - 성능 최적화
-- **타임아웃 연장**: 이미지 생성 타임아웃 120초로 연장
-- **샘플링 최적화**: 20 스텝으로 지브리 스타일 최적화
-- **MPS 가속**: Apple Silicon GPU 활용 최적화
-- **메모리 관리**: 효율적인 VRAM 사용
+### v1.3 - Performance Optimization
+- **Timeout Extension**: Extended image generation timeout to 120 seconds
+- **Sampling Optimization**: Optimized for Ghibli style with 20 steps
+- **MPS Acceleration**: Apple Silicon GPU utilization optimization
+- **Memory Management**: Efficient VRAM usage
 
-## 🐛 알려진 이슈
+## 🐛 Known Issues
 
-### ComfyUI 서버 관련
-- **Bad linked input 오류**: 워크플로우 JSON 구조 문제로 간헐적 발생
-- **JSON Decode 오류**: 네트워크 전송 중 JSON 파싱 오류
-- **해결책**: 서버 재시작 또는 워크플로우 재전송
+### ComfyUI Server Related
+- **Bad linked input Error**: Intermittently occurs due to workflow JSON structure issues
+- **JSON Decode Error**: JSON parsing error during network transmission
+- **Solution**: Server restart or workflow retransmission
 
-### Android 앱 관련
-- **권한 요청**: Android 10+ 에서 갤러리 저장 권한 자동 처리
-- **네트워크 타임아웃**: 이미지 생성 시간이 길 경우 타임아웃 발생
-- **해결책**: 120초 타임아웃 설정으로 대부분 해결
+### Android App Related
+- **Permission Requests**: Automatic handling of gallery storage permissions on Android 10+
+- **Network Timeout**: Timeout occurs when image generation takes too long
+- **Solution**: Most issues resolved with 120-second timeout setting
 
-## 🤝 기여 및 문의
+## 🤝 Contributing and Inquiries
 
-### 버그 리포트
-- GitHub Issues를 통해 버그를 리포트해주세요
-- 로그와 함께 상세한 재현 방법을 포함해주세요
+### Bug Reports
+- Please report bugs through GitHub Issues
+- Include detailed reproduction methods with logs
 
-### 기능 제안
-- 새로운 기능 아이디어는 Pull Request로 제안해주세요
-- 발달장애인 사용자 경험 개선에 도움이 되는 제안을 환영합니다
+### Feature Suggestions
+- Suggest new feature ideas through Pull Requests
+- Suggestions that improve user experience for people with developmental disabilities are welcome
 
-### 개발 환경 설정
-- Android Studio Arctic Fox 이상
+### Development Environment Setup
+- Android Studio Arctic Fox or higher
 - Kotlin 1.8+
 - Java 17
 - ComfyUI Python 3.10+
 
-## 📄 라이선스
+## 📄 License
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+This project is distributed under the MIT License.
 
-## 🙏 감사의 말
+## 🙏 Acknowledgments
 
-- **Google Gemini API**: 자연어 처리 및 프롬프트 변환
-- **ComfyUI**: 로컬 이미지 생성 서버
-- **Stability AI**: SDXL 모델 제공
-- **Apple**: MPS 가속 지원
+- **Google Gemini API**: Natural language processing and prompt translation
+- **ComfyUI**: Local image generation server
+- **Stability AI**: SDXL model provision
+- **Apple**: MPS acceleration support
 
 ---
 
-**피우다** - 발달장애인과 함께하는 AI 친구 🫂✨
+**Pwooda** - AI friend for people with developmental disabilities 🫂✨
 
-## 🆕 2025년 7월 주요 업데이트 및 UX 개선
+## 🆕 July 2025 Major Updates and UX Improvements
 
-- **스플래시 음악**: 앱 실행 시 intro_music.mp3가 재생되고, 음악이 끝나야 메인화면으로 진입(스킵 버튼 지원)
-- **이름 인식 Gemini 기반**: 이름 인식 시 Gemini LLM이 자연스러운 친구 말투로 환영 메시지 생성 및 TTS/화면에 그대로 출력
-- **이미지 생성 애니메이션**: 이미지 생성 중에는 running.mp4(또는 sprite sheet) 기반 애니메이션이 화면 중앙에 투명 배경으로 재생됨
-- **스프라이트 시트 애니메이션**: drawing_sheet.png(5x9, 43컷) sprite sheet를 활용해 이미지 생성 중 부드러운 애니메이션 제공(투명 배경 지원)
-- **완성 그림 라운드 마스킹**: AI가 그린 완성 이미지는 모서리가 둥근 박스(32dp)로 마스킹되어 깔끔하게 표시
-- **중복 이미지 출력 방지**: 완성 그림이 한 번만 표시되도록 UI 개선
-- **친근한 말투 일관성**: 이름 인식, 환영 메시지, 안내 등 모든 대화가 10대 소녀 친구 말투로 일관성 있게 출력
+- **Splash Music**: intro_music.mp3 plays when app launches, main screen only loads after music ends (skip button supported)
+- **Gemini-Based Name Recognition**: When recognizing names, Gemini LLM generates natural friendly welcome messages and outputs directly to TTS/screen
+- **Image Generation Animation**: During image generation, running.mp4 (or sprite sheet) based animation plays in screen center with transparent background
+- **Sprite Sheet Animation**: Utilizes drawing_sheet.png (5x9, 43 frames) sprite sheet to provide smooth animation during image generation (transparent background supported)
+- **Completed Image Round Masking**: AI-generated completed images are masked in rounded corner boxes (32dp) for clean display
+- **Duplicate Image Output Prevention**: UI improvement to display completed images only once
+- **Consistent Friendly Tone**: All conversations including name recognition, welcome messages, and guidance output in consistent 10-year-old girl friend tone
 
-## 🖼️ 이미지 생성 UX 예시
+## 🖼️ Image Generation UX Example
 
-1. 사용자가 "귀여운 강아지 그림 그려줘"라고 말하면
-2. 중앙에 sprite sheet 애니메이션(투명 배경)이 재생되며 "이미지 생성중..." 텍스트가 표시됨
-3. 이미지 생성이 완료되면, 완성 그림이 모서리가 둥근 박스에 한 번만 표시됨
-4. "그림 저장해줘" 요청 시 갤러리에 저장됨
+1. When user says "Draw a cute puppy"
+2. Sprite sheet animation (transparent background) plays in center with "Image generating..." text displayed
+3. When image generation completes, completed image is displayed once in rounded corner box
+4. When "save the picture" is requested, it's saved to gallery
 
-## 👤 이름 인식/등록 UX 예시
+## 👤 Name Recognition/Registration UX Example
 
-1. 얼굴 인식 후 "이름이 뭐야?" 음성 안내
-2. 사용자가 이름을 말하면 Gemini가 이름을 추출하고, "토니야! 반가워~ 앞으로 자주 불러줄게!" 등 친근한 환영 메시지를 화면+TTS로 출력
-3. 등록된 이름이 아니면 다시 안내
+1. After face recognition, "What's your name?" voice guidance
+2. When user says name, Gemini extracts name and outputs friendly welcome message like "Tony! Nice to meet you~ I'll call you often from now on!" to screen+TTS
+3. If name is not registered, guidance is repeated

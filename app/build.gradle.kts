@@ -5,12 +5,12 @@ plugins {
 }
 
 android {
-    namespace = "com.banya.pwooda"
+    namespace = "com.banya.neulpum"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.banya.pwooda"
-        minSdk = 35
+        applicationId = "com.banya.neulpum"
+        minSdk = 24
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -37,6 +37,10 @@ android {
     buildFeatures {
         compose = true
     }
+    
+    lint {
+        disable += "UnsafeOptInUsageError"
+    }
 }
 
 dependencies {
@@ -55,7 +59,13 @@ dependencies {
     
     // HTTP Client for Google Cloud TTS
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Retrofit for API calls
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     
     // RSA 서명을 위한 의존성
     implementation("org.bouncycastle:bcprov-jdk15on:1.70")
@@ -96,4 +106,24 @@ dependencies {
     
     // ML Kit Face Detection
     implementation("com.google.mlkit:face-detection:16.1.6")
+    
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    
+    // Kakao Login
+    implementation("com.kakao.sdk:v2-user:2.19.0") {
+        exclude(group = "com.android.support")
+    }
+    
+    // Audio recording and playback
+    implementation("androidx.media3:media3-exoplayer:1.2.0")
+    implementation("androidx.media3:media3-ui:1.2.0")
+    
+    // HTTP client for Google TTS API
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    
+
+    
+    // Apple Sign-In (for Android) - 실제로는 Android에서 직접 지원하지 않음
+    // implementation("com.apple.android.sdk:signin:1.0.0")
 }

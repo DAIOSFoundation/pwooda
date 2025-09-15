@@ -1,0 +1,466 @@
+package com.banya.neulpum.presentation.ui.screens
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.banya.neulpum.data.remote.GoogleSpeechService
+import com.banya.neulpum.presentation.ui.components.EqualizerBars
+import com.banya.neulpum.presentation.ui.components.EqualizerCenterReactive
+import com.banya.neulpum.data.remote.VoiceWebSocketClient
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.delay
+import com.banya.neulpum.presentation.ui.components.voice.VoiceCenterOverlay
+import com.banya.neulpum.presentation.ui.components.voice.VoiceMicButton
+import com.banya.neulpum.presentation.ui.components.voice.CircularParticleView
+import com.banya.neulpum.utils.PermissionHelper
+import com.banya.neulpum.utils.rememberPermissionHelper
+import com.banya.neulpum.presentation.ui.components.MicrophonePermissionDialog
+import androidx.compose.ui.viewinterop.AndroidView
+import kotlin.random.Random
+import android.media.audiofx.Visualizer
+import kotlin.math.sqrt
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VoiceChatScreen(
+    paddingValues: PaddingValues = PaddingValues(0.dp)
+) {
+    val context = LocalContext.current
+    val permissionHelper = rememberPermissionHelper()
+    
+    var isRecording by remember { mutableStateOf(false) }
+    var recordingTime by remember { mutableStateOf(0) }
+    var partialText by remember { mutableStateOf("") }
+    var speechService by remember { mutableStateOf<GoogleSpeechService?>(null) }
+    
+    var hasMicrophonePermission by remember {
+        mutableStateOf(
+            permissionHelper.isPermissionGranted(PermissionHelper.RECORD_AUDIO_PERMISSION)
+        )
+    }
+    
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    
+    // 화면이 표시될 때마다 권한 상태를 다시 확인
+    LaunchedEffect(Unit) {
+        hasMicrophonePermission = permissionHelper.isPermissionGranted(PermissionHelper.RECORD_AUDIO_PERMISSION)
+    }
+    
+    
+    var wsClient by remember { mutableStateOf<VoiceWebSocketClient?>(null) }
+    var isWsConnected by remember { mutableStateOf(false) }
+    var player by remember { mutableStateOf<ExoPlayer?>(null) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var isAwaitingResponse by remember { mutableStateOf(false) }
+    val audioBuffer = remember { java.io.ByteArrayOutputStream() }
+    var audioLevel by remember { mutableStateOf(0f) }
+    var visualizer by remember { mutableStateOf<Visualizer?>(null) }
+    var pendingText by remember { mutableStateOf<String?>(null) }
+    var doneReceived by remember { mutableStateOf(false) }
+    var fallbackScheduled by remember { mutableStateOf(false) }
+    var lastAudioFormat by remember { mutableStateOf<String?>(null) }
+    var isWsConnecting by remember { mutableStateOf(false) }
+    val mainHandler = remember { androidx.core.os.HandlerCompat.createAsync(android.os.Looper.getMainLooper()) }
+    var lastRecognizedText by remember { mutableStateOf<String?>(null) }
+
+    
+    // 녹음 시간 업데이트
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            while (isRecording) {
+                delay(1000)
+                recordingTime++
+            }
+        } else {
+            recordingTime = 0
+        }
+    }
+    
+    // 음성 인식 서비스 및 WebSocket 초기화
+    LaunchedEffect(Unit) {
+        speechService = GoogleSpeechService(context, "YOUR_GOOGLE_API_KEY")
+        // WebSocket 연결 설정
+        val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val access = prefs.getString("access_token", null)
+        val orgKey = prefs.getString("organization_api_key", null)
+        val base = com.banya.neulpum.di.AppConfig.BASE_HOST
+        val wsScheme = if (base.startsWith("https")) "wss" else "ws"
+        val wsUrl = base.replaceFirst(Regex("^https?"), wsScheme) + "/ws/voice"
+        // mainHandler 및 debugToast는 Composable 스코프에서 remember로 공유됨
+        player = ExoPlayer.Builder(context).build().apply {
+            val attrs = AudioAttributes.Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
+                .build()
+            setAudioAttributes(attrs, true)
+            volume = 1f
+            addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED) {
+                        mainHandler.post {
+                            isPlaying = false
+                            audioLevel = 0f
+                            try { visualizer?.release() } catch (_: Exception) {}
+                            visualizer = null
+                        }
+                    }
+                }
+                override fun onPlayerError(error: PlaybackException) {
+                    mainHandler.post {
+                        isPlaying = false
+                        audioLevel = 0f
+                        try { visualizer?.release() } catch (_: Exception) {}
+                        visualizer = null
+                    }
+                }
+                override fun onIsPlayingChanged(isPlayingNow: Boolean) {
+                    mainHandler.post { isPlaying = isPlayingNow }
+                }
+            })
+        }
+        wsClient = VoiceWebSocketClient(wsUrl, access, orgKey, object: VoiceWebSocketClient.Listener {
+            override fun onOpen() {
+                isWsConnected = true
+                isWsConnecting = false
+                // 연결 지연 시 보낸 텍스트를 즉시 전송
+                val p = pendingText
+                if (!p.isNullOrBlank()) {
+                    wsClient?.sendText(p)
+                    pendingText = null
+                }
+                
+            }
+            override fun onTtsChunk(bytes: ByteArray, format: String?) {
+                try {
+                    lastAudioFormat = format
+                    // 청크를 버퍼에 축적하고, 재생은 onDone에서 일괄 처리
+                    audioBuffer.write(bytes)
+                    
+
+                    // Fallback: done 이벤트가 지연되면 일정 시간 후 버퍼 재생(무음 방지)
+                    if (!fallbackScheduled) {
+                        fallbackScheduled = true
+                        mainHandler.postDelayed({
+                            if (!doneReceived) {
+                                try {
+                                    val all = audioBuffer.toByteArray()
+                                    if (all.isNotEmpty()) {
+                                        val ext = if (format == "wav") ".wav" else ".mp3"
+                                        val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
+                                        cache.outputStream().use { it.write(all) }
+                                        val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
+                                        // 모든 ExoPlayer 조작은 메인 스레드에서 실행
+                                        mainHandler.post {
+                                            player?.stop()
+                                            player?.clearMediaItems()
+                                            player?.setMediaItem(mediaItem)
+                                            player?.prepare()
+                                            player?.play()
+                                            isPlaying = true
+                                            isAwaitingResponse = false
+                                        }
+                                    }
+                                } catch (_: Exception) {}
+                            }
+                        }, 700)
+                    }
+                } catch (_: Exception) {}
+            }
+            override fun onDone() {
+                try {
+                    val all = audioBuffer.toByteArray()
+                    audioBuffer.reset()
+                    if (all.isNotEmpty()) {
+                        val ext = if (lastAudioFormat == "wav") ".wav" else ".mp3"
+                        val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
+                        cache.outputStream().use { it.write(all) }
+                        val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
+                        mainHandler.post {
+                            player?.stop()
+                            player?.clearMediaItems()
+                            player?.setMediaItem(mediaItem)
+                            player?.prepare()
+                            player?.play()
+                            isPlaying = true
+                        }
+                    }
+                } catch (_: Exception) {
+                } finally {
+                    doneReceived = true
+                    fallbackScheduled = false
+                    isAwaitingResponse = false
+                    
+                }
+            }
+            override fun onError(error: String) {
+                isAwaitingResponse = false
+                isWsConnecting = false
+                
+            }
+            override fun onLog(stage: String, message: String) {
+                // 필요 시 UI에 표시 가능. 여기서는 상태만 보장
+                
+            }
+            override fun onClose(code: Int, reason: String) {
+                isWsConnected = false
+                isAwaitingResponse = false
+                isWsConnecting = false
+                
+            }
+        })
+        // 연결은 즉시 하지 않음. 마이크 버튼을 눌렀을 때 필요 시 연결.
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try { wsClient?.close() } catch (_: Exception) {}
+            try { player?.release() } catch (_: Exception) {}
+        }
+    }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+        // 상단 화려한 파티클 이퀄라이저 - 상단에서 여백 주고 조금 내려서 배치
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            // 상단에서 여백을 주고 조금 내려서 배치
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+            // 화려한 파티클 이퀄라이저
+            AndroidView(
+                factory = { ctx ->
+                    CircularParticleView(ctx).apply { 
+                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        startVisualizing() 
+                    }
+                },
+                update = { view ->
+                    if (isRecording || isPlaying) {
+                        view.startVisualizing()
+                        // 오디오 레벨에 기반한 FFT 데이터 생성
+                        val fftData = ByteArray(64) { i ->
+                            val baseLevel = (audioLevel * 80).toInt()
+                            val variation = (kotlin.math.sin(i * 0.5) * 30).toInt()
+                            val wave = (kotlin.math.sin(i * 0.3 + System.currentTimeMillis() * 0.01) * 20).toInt()
+                            (baseLevel + variation + wave).coerceIn(0, 127).toByte()
+                        }
+                        view.setFftData(fftData)
+                    } else {
+                        view.startVisualizing()
+                        // 대기 상태 - 미묘한 애니메이션
+                        val fftData = ByteArray(64) { i ->
+                            val idle = (kotlin.math.sin(i * 0.2 + System.currentTimeMillis() * 0.005) * 15 + 25).toInt()
+                            idle.coerceIn(0, 127).toByte()
+                        }
+                        view.setFftData(fftData)
+                    }
+                },
+                modifier = Modifier
+                    .size(300.dp)
+                    .background(Color.Transparent)
+            )
+            }
+        }
+        // 하단 영역(패딩 포함) UI - 배경 제거하여 중앙 오버레이가 보이도록
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // 전송(녹음) 중일 때 버튼 위 작은 이퀄라이저
+            if (isRecording) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 120.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    EqualizerBars(active = true, barColor = Color(0xFF10A37F))
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            // 음성 녹음 FAB (하단 중앙)
+            VoiceMicButton(
+                isRecording = isRecording,
+                paddingValues = paddingValues,
+                onToggle = {
+                if (isRecording) {
+                    isRecording = false
+                    speechService?.cleanup()
+                } else {
+                    if (hasMicrophonePermission) {
+                        // 소켓이 미연결 상태이면 우선 연결 시도
+                        if (!isWsConnected && !isWsConnecting) {
+                            isWsConnecting = true
+                            try { wsClient?.connect() } catch (_: Exception) { isWsConnecting = false }
+                        }
+                        // 새 녹음 시작 시 기존 최종 텍스트는 숨김
+                        lastRecognizedText = null
+                        isRecording = true
+                        partialText = ""
+                        // 보이스 요약 텍스트 초기화 제거
+                        speechService?.startSpeechRecognition(
+                            onPartialResult = { text ->
+                                partialText = text
+                            },
+                            onFinalResult = { text ->
+                                isRecording = false
+                                partialText = ""
+                                lastRecognizedText = text
+                                if (text.isNotEmpty()) {
+                                    // 새 요청 시작 시 이전 재생 상태 초기화
+                                    try { player?.stop() } catch (_: Exception) {}
+                                    try { player?.clearMediaItems() } catch (_: Exception) {}
+                                    isPlaying = false
+                                    audioLevel = 0f
+                                    try { visualizer?.release() } catch (_: Exception) {}
+                                    visualizer = null
+                                    try { audioBuffer.reset() } catch (_: Exception) {}
+                                    isAwaitingResponse = true
+                                    if (isWsConnected) {
+                                        wsClient?.sendText(text)
+                                    } else {
+                                        pendingText = text
+                                    }
+                                }
+                            },
+                            onError = { _ ->
+                                isRecording = false
+                                partialText = ""
+                                isAwaitingResponse = false
+                            }
+                        )
+                    } else {
+                        // 마이크 권한이 없는 경우 권한 요청 다이얼로그 표시
+                        showPermissionDialog = true
+                    }
+                }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+            )
+
+            // 마지막 음성 인식 결과 텍스트 (하단 고정 표시)
+            if (!lastRecognizedText.isNullOrBlank()) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 120.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFF7F7F8)
+                    ) {
+                        Text(
+                            text = lastRecognizedText ?: "",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // 오디오 레벨 시각화: 실제 오디오 세션 ID가 있을 경우 Visualizer 사용, 없으면 간단한 폴백
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            repeat(10) {
+                if (player?.audioSessionId != C.AUDIO_SESSION_ID_UNSET) return@repeat
+                delay(50)
+            }
+            val sessionId = player?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
+            if (sessionId != C.AUDIO_SESSION_ID_UNSET) {
+                try {
+                    visualizer = Visualizer(sessionId).apply {
+                        captureSize = Visualizer.getCaptureSizeRange()[1]
+                        setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
+                            override fun onWaveFormDataCapture(v: Visualizer?, bytes: ByteArray?, samplingRate: Int) {
+                                if (bytes == null) return
+                                var sum = 0f
+                                for (b in bytes) {
+                                    val fb = (b.toInt() and 0xFF) - 128
+                                    sum += (fb * fb)
+                                }
+                                val rms = sqrt(sum / bytes.size) / 128f
+                                audioLevel = rms.coerceIn(0f, 1f)
+                            }
+                            override fun onFftDataCapture(v: Visualizer?, bytes: ByteArray?, samplingRate: Int) { }
+                        }, Visualizer.getMaxCaptureRate() / 2, true, false)
+                        enabled = true
+                    }
+                } catch (_: Exception) {
+                    while (isPlaying) {
+                        audioLevel = 0.3f + Random.nextFloat() * 0.7f
+                        delay(80)
+                    }
+                    audioLevel = 0f
+                }
+            } else {
+                while (isPlaying) {
+                    audioLevel = 0.3f + Random.nextFloat() * 0.7f
+                    delay(80)
+                }
+                audioLevel = 0f
+            }
+        } else {
+            audioLevel = 0f
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try { visualizer?.release() } catch (_: Exception) {}
+            visualizer = null
+        }
+    }
+    
+    // 마이크 권한 요청 다이얼로그
+    if (showPermissionDialog) {
+        MicrophonePermissionDialog(
+            onConfirm = {
+                showPermissionDialog = false
+                permissionHelper.openAppSettings()
+            },
+            onDismiss = {
+                showPermissionDialog = false
+            }
+        )
+    }
+    
+}

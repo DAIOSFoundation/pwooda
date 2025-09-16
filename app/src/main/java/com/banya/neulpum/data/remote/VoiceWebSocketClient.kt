@@ -24,7 +24,7 @@ class VoiceWebSocketClient(
     private var webSocket: WebSocket? = null
     private val client: OkHttpClient = OkHttpClient.Builder()
         .pingInterval(15, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS) // 원래 설정으로 복원
         .build()
 
     fun connect() {
@@ -42,32 +42,40 @@ class VoiceWebSocketClient(
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
-                try {
-                    val json = JSONObject(text)
-                    val type = json.optString("type", "")
-                    when (type) {
-                        "tts_audio" -> {
-                            val format = json.optString("format", null)
-                            val chunkB64 = json.optString("chunk", "")
-                            if (chunkB64.isNotEmpty()) {
-                                val bytes = Base64.decode(chunkB64, Base64.DEFAULT)
-                                listener.onTtsChunk(bytes, format)
+                // 비동기로 메시지 처리하여 메인 스레드 블록 방지
+                Thread {
+                    try {
+                        val json = JSONObject(text)
+                        val type = json.optString("type", "")
+                        when (type) {
+                            "tts_audio" -> {
+                                val format = json.optString("format", null)
+                                val chunkB64 = json.optString("chunk", "")
+                                println("VoiceWebSocketClient: Received TTS audio chunk, format=$format, b64_len=${chunkB64.length}")
+                                if (chunkB64.isNotEmpty()) {
+                                    val bytes = Base64.decode(chunkB64, Base64.DEFAULT)
+                                    println("VoiceWebSocketClient: Decoded TTS audio bytes: ${bytes.size} bytes")
+                                    listener.onTtsChunk(bytes, format)
+                                } else {
+                                    println("VoiceWebSocketClient: Empty TTS chunk received")
+                                }
                             }
+                            "error" -> {
+                                val msg = json.optString("message", "unknown_error")
+                                listener.onError(msg)
+                            }
+                            "log" -> {
+                                val stage = json.optString("stage", "")
+                                val msg = json.optString("message", "")
+                                println("VoiceWebSocketClient: Log received - Stage: $stage, Message: $msg")
+                                listener.onLog(stage, msg)
+                            }
+                            "done" -> listener.onDone()
                         }
-                        "error" -> {
-                            val msg = json.optString("message", "unknown_error")
-                            listener.onError(msg)
-                        }
-                        "log" -> {
-                            val stage = json.optString("stage", "")
-                            val msg = json.optString("message", "")
-                            listener.onLog(stage, msg)
-                        }
-                        "done" -> listener.onDone()
+                    } catch (e: Exception) {
+                        listener.onError("Invalid message: ${e.message}")
                     }
-                } catch (e: Exception) {
-                    listener.onError("Invalid message: ${e.message}")
-                }
+                }.start()
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
@@ -81,6 +89,7 @@ class VoiceWebSocketClient(
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                println("VoiceWebSocketClient: WebSocket failure - ${t.message}")
                 listener.onError(t.message ?: "WebSocket error")
             }
         })

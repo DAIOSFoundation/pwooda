@@ -594,9 +594,28 @@ private fun sendMessage(
                 accessToken = accessToken,
                 conversationId = conversationId,
                 imageBase64 = image?.let { bmp ->
+                    // 이미지 크기 제한 (최대 800x800)
+                    val maxSize = 800
+                    val scaledBitmap = if (bmp.width > maxSize || bmp.height > maxSize) {
+                        val scale = minOf(maxSize.toFloat() / bmp.width, maxSize.toFloat() / bmp.height)
+                        val newWidth = (bmp.width * scale).toInt()
+                        val newHeight = (bmp.height * scale).toInt()
+                        android.graphics.Bitmap.createScaledBitmap(bmp, newWidth, newHeight, true)
+                    } else {
+                        bmp
+                    }
+                    
+                    // 강한 압축 (50% 품질)
                     val stream = java.io.ByteArrayOutputStream()
-                    bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, stream)
+                    scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, stream)
                     val bytes = stream.toByteArray()
+                    
+                    // Base64 인코딩 전 크기 확인
+                    println("Image size after compression: ${bytes.size} bytes")
+                    if (bytes.size > 1024 * 1024) { // 1MB 초과 시 경고
+                        println("Warning: Image size is ${bytes.size} bytes, may cause connection issues")
+                    }
+                    
                     android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                 }
             ).collect { event ->

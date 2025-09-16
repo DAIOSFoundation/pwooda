@@ -152,75 +152,79 @@ fun VoiceChatScreen(
                 
             }
             override fun onTtsChunk(bytes: ByteArray, format: String?) {
-                try {
-                    lastAudioFormat = format
-                    // 청크를 버퍼에 축적하고, 재생은 onDone에서 일괄 처리
-                    audioBuffer.write(bytes)
-                    
-
-                    // Fallback: done 이벤트가 지연되면 일정 시간 후 버퍼 재생(무음 방지)
-                    if (!fallbackScheduled) {
-                        fallbackScheduled = true
-                        mainHandler.postDelayed({
-                            if (!doneReceived) {
-                                try {
-                                    val all = audioBuffer.toByteArray()
-                                    if (all.isNotEmpty()) {
-                                        val ext = if (format == "wav") ".wav" else ".mp3"
-                                        val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
-                                        cache.outputStream().use { it.write(all) }
-                                        val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
-                                        // 모든 ExoPlayer 조작은 메인 스레드에서 실행
-                                        mainHandler.post {
-                                            player?.stop()
-                                            player?.clearMediaItems()
-                                            player?.setMediaItem(mediaItem)
-                                            player?.prepare()
-                                            player?.play()
-                                            isPlaying = true
-                                            isAwaitingResponse = false
+                // 비동기로 오디오 청크 처리
+                Thread {
+                    try {
+                        lastAudioFormat = format
+                        // 청크를 버퍼에 축적하고, 재생은 onDone에서 일괄 처리
+                        audioBuffer.write(bytes)
+                        
+                        // Fallback: done 이벤트가 지연되면 일정 시간 후 버퍼 재생(무음 방지)
+                        if (!fallbackScheduled) {
+                            fallbackScheduled = true
+                            mainHandler.postDelayed({
+                                if (!doneReceived) {
+                                    try {
+                                        val all = audioBuffer.toByteArray()
+                                        if (all.isNotEmpty()) {
+                                            val ext = if (format == "wav") ".wav" else ".mp3"
+                                            val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
+                                            cache.outputStream().use { it.write(all) }
+                                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
+                                            // 모든 ExoPlayer 조작은 메인 스레드에서 실행
+                                            mainHandler.post {
+                                                player?.stop()
+                                                player?.clearMediaItems()
+                                                player?.setMediaItem(mediaItem)
+                                                player?.prepare()
+                                                player?.play()
+                                                isPlaying = true
+                                                isAwaitingResponse = false
+                                            }
                                         }
-                                    }
-                                } catch (_: Exception) {}
-                            }
-                        }, 700)
-                    }
-                } catch (_: Exception) {}
+                                    } catch (_: Exception) {}
+                                }
+                            }, 700)
+                        }
+                    } catch (_: Exception) {}
+                    }.start()
             }
             override fun onDone() {
-                try {
-                    val all = audioBuffer.toByteArray()
-                    audioBuffer.reset()
-                    if (all.isNotEmpty()) {
-                        val ext = if (lastAudioFormat == "wav") ".wav" else ".mp3"
-                        val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
-                        cache.outputStream().use { it.write(all) }
-                        val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
-                        mainHandler.post {
-                            player?.stop()
-                            player?.clearMediaItems()
-                            player?.setMediaItem(mediaItem)
-                            player?.prepare()
-                            player?.play()
-                            isPlaying = true
+                // 비동기로 완료 처리
+                Thread {
+                    try {
+                        val all = audioBuffer.toByteArray()
+                        audioBuffer.reset()
+                        if (all.isNotEmpty()) {
+                            val ext = if (lastAudioFormat == "wav") ".wav" else ".mp3"
+                            val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
+                            cache.outputStream().use { it.write(all) }
+                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
+                            mainHandler.post {
+                                player?.stop()
+                                player?.clearMediaItems()
+                                player?.setMediaItem(mediaItem)
+                                player?.prepare()
+                                player?.play()
+                                isPlaying = true
+                            }
                         }
+                    } catch (_: Exception) {
+                    } finally {
+                        doneReceived = true
+                        fallbackScheduled = false
+                        isAwaitingResponse = false
                     }
-                } catch (_: Exception) {
-                } finally {
-                    doneReceived = true
-                    fallbackScheduled = false
-                    isAwaitingResponse = false
-                    
-                }
+                }.start()
             }
             override fun onError(error: String) {
                 isAwaitingResponse = false
                 isWsConnecting = false
-                
+                println("VoiceChatScreen: WebSocket error - $error")
             }
             override fun onLog(stage: String, message: String) {
                 // 필요 시 UI에 표시 가능. 여기서는 상태만 보장
-                
+                println("VoiceChatScreen: Server log - Stage: $stage, Message: $message")
             }
             override fun onClose(code: Int, reason: String) {
                 isWsConnected = false

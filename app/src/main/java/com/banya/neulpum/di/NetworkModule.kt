@@ -15,7 +15,8 @@ import android.content.Intent
 import com.banya.neulpum.presentation.activity.LoginActivity
 
 object AppConfig {
-    const val BASE_HOST = "https://api-llmops.banya.ai"
+    // const val BASE_HOST = "https://api-llmops.banya.ai"
+    const val BASE_HOST = "http://192.168.0.3:8000"
     const val API_BASE_URL = "$BASE_HOST/api/v1/"
     const val APP_VERSION = "1.0.0"
 }

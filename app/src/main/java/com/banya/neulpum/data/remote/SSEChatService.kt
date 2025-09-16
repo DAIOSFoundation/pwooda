@@ -37,20 +37,40 @@ class SSEChatService {
             .scheme("https")
             .host("api-llmops.banya.ai")
             .addPathSegments("api/v1/chat/sse")
-            .addQueryParameter("message", message)
-            .apply {
-                providerId?.let { addQueryParameter("provider_id", it) }
-                conversationId?.let { addQueryParameter("conversation_id", it) }
-                imageBase64?.let { addQueryParameter("image_base64", it) }
-            }
             .build()
         
         println("SSE URL: $url")
         
-        val requestBuilder = Request.Builder()
-            .url(url)
-            .addHeader("Accept", "text/event-stream")
-            .addHeader("Cache-Control", "no-cache")
+        // 이미지가 있으면 POST 요청으로 변경
+        val requestBuilder = if (imageBase64 != null) {
+            val requestBody = FormBody.Builder()
+                .add("message", message)
+                .apply {
+                    providerId?.let { add("provider_id", it) }
+                    conversationId?.let { add("conversation_id", it) }
+                    add("image_base64", imageBase64)
+                }
+                .build()
+            
+            Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("Accept", "text/event-stream")
+                .addHeader("Cache-Control", "no-cache")
+        } else {
+            val urlWithParams = url.newBuilder()
+                .addQueryParameter("message", message)
+                .apply {
+                    providerId?.let { addQueryParameter("provider_id", it) }
+                    conversationId?.let { addQueryParameter("conversation_id", it) }
+                }
+                .build()
+            
+            Request.Builder()
+                .url(urlWithParams)
+                .addHeader("Accept", "text/event-stream")
+                .addHeader("Cache-Control", "no-cache")
+        }
         
         organizationApiKey?.let {
             requestBuilder.addHeader("X-API-Key", it)

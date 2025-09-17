@@ -30,6 +30,8 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import com.banya.neulpum.presentation.ui.components.voice.VoiceCenterOverlay
 import com.banya.neulpum.presentation.ui.components.voice.VoiceMicButton
 import com.banya.neulpum.presentation.ui.components.voice.CircularParticleView
@@ -152,79 +154,52 @@ fun VoiceChatScreen(
                 
             }
             override fun onTtsChunk(bytes: ByteArray, format: String?) {
-                // 비동기로 오디오 청크 처리
-                Thread {
+                // 비동기로 오디오 청크 처리 - 코루틴 사용으로 최적화
+                GlobalScope.launch {
                     try {
                         lastAudioFormat = format
                         // 청크를 버퍼에 축적하고, 재생은 onDone에서 일괄 처리
                         audioBuffer.write(bytes)
                         
-                        // Fallback: done 이벤트가 지연되면 일정 시간 후 버퍼 재생(무음 방지)
-                        if (!fallbackScheduled) {
-                            fallbackScheduled = true
-                            mainHandler.postDelayed({
-                                if (!doneReceived) {
-                                    try {
-                                        val all = audioBuffer.toByteArray()
-                                        if (all.isNotEmpty()) {
-                                            val ext = if (format == "wav") ".wav" else ".mp3"
-                                            val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
-                                            cache.outputStream().use { it.write(all) }
-                                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
-                                            // 모든 ExoPlayer 조작은 메인 스레드에서 실행
-                                            mainHandler.post {
-                                                player?.stop()
-                                                player?.clearMediaItems()
-                                                player?.setMediaItem(mediaItem)
-                                                player?.prepare()
-                                                player?.play()
-                                                isPlaying = true
-                                                isAwaitingResponse = false
-                                            }
-                                        }
-                                    } catch (_: Exception) {}
+                        // 즉시 재생 시도 - onDone을 기다리지 않음
+                        try {
+                            val all = audioBuffer.toByteArray()
+                            if (all.isNotEmpty()) {
+                                val ext = if (format == "wav") ".wav" else ".mp3"
+                                val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
+                                cache.outputStream().use { it.write(all) }
+                                val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
+                                // 모든 ExoPlayer 조작은 메인 스레드에서 실행
+                                mainHandler.post {
+                                    player?.stop()
+                                    player?.clearMediaItems()
+                                    player?.setMediaItem(mediaItem)
+                                    player?.prepare()
+                                    player?.play()
+                                    isPlaying = true
+                                    isAwaitingResponse = false
+                                    // 즉시 재생 후 상태 초기화
+                                    doneReceived = true
+                                    fallbackScheduled = false
                                 }
-                            }, 700)
-                        }
+                            }
+                        } catch (_: Exception) {}
+                        
                     } catch (_: Exception) {}
-                    }.start()
+                }
             }
             override fun onDone() {
-                // 비동기로 완료 처리
-                Thread {
-                    try {
-                        val all = audioBuffer.toByteArray()
-                        audioBuffer.reset()
-                        if (all.isNotEmpty()) {
-                            val ext = if (lastAudioFormat == "wav") ".wav" else ".mp3"
-                            val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
-                            cache.outputStream().use { it.write(all) }
-                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
-                            mainHandler.post {
-                                player?.stop()
-                                player?.clearMediaItems()
-                                player?.setMediaItem(mediaItem)
-                                player?.prepare()
-                                player?.play()
-                                isPlaying = true
-                            }
-                        }
-                    } catch (_: Exception) {
-                    } finally {
-                        doneReceived = true
-                        fallbackScheduled = false
-                        isAwaitingResponse = false
-                    }
-                }.start()
+                // onDone은 이제 상태 초기화만 담당 (재생은 onTtsChunk에서 처리)
+                doneReceived = true
+                fallbackScheduled = false
+                isAwaitingResponse = false
             }
             override fun onError(error: String) {
                 isAwaitingResponse = false
                 isWsConnecting = false
-                println("VoiceChatScreen: WebSocket error - $error")
             }
             override fun onLog(stage: String, message: String) {
-                // 필요 시 UI에 표시 가능. 여기서는 상태만 보장
-                println("VoiceChatScreen: Server log - Stage: $stage, Message: $message")
+                // 서버 로그는 필요시에만 처리
             }
             override fun onClose(code: Int, reason: String) {
                 isWsConnected = false
@@ -273,19 +248,18 @@ fun VoiceChatScreen(
                 update = { view ->
                     if (isRecording || isPlaying) {
                         view.startVisualizing()
-                        // 오디오 레벨에 기반한 FFT 데이터 생성
+                        // 최적화된 FFT 데이터 생성 - 캐시된 계산 사용
                         val fftData = ByteArray(64) { i ->
-                            val baseLevel = (audioLevel * 80).toInt()
-                            val variation = (kotlin.math.sin(i * 0.5) * 30).toInt()
-                            val wave = (kotlin.math.sin(i * 0.3 + System.currentTimeMillis() * 0.01) * 20).toInt()
-                            (baseLevel + variation + wave).coerceIn(0, 127).toByte()
+                            val baseLevel = (audioLevel * 60).toInt()
+                            val wave = (kotlin.math.sin(i * 0.3) * 20).toInt()
+                            (baseLevel + wave).coerceIn(0, 127).toByte()
                         }
                         view.setFftData(fftData)
                     } else {
                         view.startVisualizing()
-                        // 대기 상태 - 미묘한 애니메이션
+                        // 대기 상태 - 간단한 애니메이션
                         val fftData = ByteArray(64) { i ->
-                            val idle = (kotlin.math.sin(i * 0.2 + System.currentTimeMillis() * 0.005) * 15 + 25).toInt()
+                            val idle = (kotlin.math.sin(i * 0.2) * 10 + 20).toInt()
                             idle.coerceIn(0, 127).toByte()
                         }
                         view.setFftData(fftData)
@@ -346,7 +320,7 @@ fun VoiceChatScreen(
                                 partialText = ""
                                 lastRecognizedText = text
                                 if (text.isNotEmpty()) {
-                                    // 새 요청 시작 시 이전 재생 상태 초기화
+                                    // 새 요청 시작 시 이전 재생 상태 완전 초기화
                                     try { player?.stop() } catch (_: Exception) {}
                                     try { player?.clearMediaItems() } catch (_: Exception) {}
                                     isPlaying = false
@@ -354,6 +328,9 @@ fun VoiceChatScreen(
                                     try { visualizer?.release() } catch (_: Exception) {}
                                     visualizer = null
                                     try { audioBuffer.reset() } catch (_: Exception) {}
+                                    // 상태 변수들 완전 초기화
+                                    doneReceived = false
+                                    fallbackScheduled = false
                                     isAwaitingResponse = true
                                     if (isWsConnected) {
                                         wsClient?.sendText(text)
@@ -401,44 +378,50 @@ fun VoiceChatScreen(
         }
     }
 
-    // 오디오 레벨 시각화: 실제 오디오 세션 ID가 있을 경우 Visualizer 사용, 없으면 간단한 폴백
+    // 오디오 레벨 시각화: 최적화된 Visualizer 사용
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
-            repeat(10) {
+            // 세션 ID 대기 시간 단축
+            repeat(5) {
                 if (player?.audioSessionId != C.AUDIO_SESSION_ID_UNSET) return@repeat
-                delay(50)
+                delay(20)
             }
             val sessionId = player?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
             if (sessionId != C.AUDIO_SESSION_ID_UNSET) {
                 try {
                     visualizer = Visualizer(sessionId).apply {
-                        captureSize = Visualizer.getCaptureSizeRange()[1]
+                        captureSize = Visualizer.getCaptureSizeRange()[0] // 최소 크기 사용
                         setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
                             override fun onWaveFormDataCapture(v: Visualizer?, bytes: ByteArray?, samplingRate: Int) {
                                 if (bytes == null) return
+                                // 최적화된 RMS 계산
                                 var sum = 0f
-                                for (b in bytes) {
+                                val len = bytes.size
+                                for (i in 0 until len step 4) { // 4배 샘플링으로 성능 향상
+                                    val b = bytes[i]
                                     val fb = (b.toInt() and 0xFF) - 128
                                     sum += (fb * fb)
                                 }
-                                val rms = sqrt(sum / bytes.size) / 128f
+                                val rms = sqrt(sum / (len / 4)) / 128f
                                 audioLevel = rms.coerceIn(0f, 1f)
                             }
                             override fun onFftDataCapture(v: Visualizer?, bytes: ByteArray?, samplingRate: Int) { }
-                        }, Visualizer.getMaxCaptureRate() / 2, true, false)
+                        }, Visualizer.getMaxCaptureRate() / 4, true, false) // 캡처 레이트 감소
                         enabled = true
                     }
                 } catch (_: Exception) {
+                    // 폴백 애니메이션 간소화
                     while (isPlaying) {
-                        audioLevel = 0.3f + Random.nextFloat() * 0.7f
-                        delay(80)
+                        audioLevel = 0.4f + Random.nextFloat() * 0.4f
+                        delay(100) // 업데이트 간격 증가
                     }
                     audioLevel = 0f
                 }
             } else {
+                // 폴백 애니메이션 간소화
                 while (isPlaying) {
-                    audioLevel = 0.3f + Random.nextFloat() * 0.7f
-                    delay(80)
+                    audioLevel = 0.4f + Random.nextFloat() * 0.4f
+                    delay(100) // 업데이트 간격 증가
                 }
                 audioLevel = 0f
             }
@@ -468,3 +451,4 @@ fun VoiceChatScreen(
     }
     
 }
+

@@ -22,6 +22,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import kotlin.math.cos
+import kotlin.math.sin
 import com.banya.neulpum.data.remote.GoogleSpeechService
 import com.banya.neulpum.presentation.ui.components.EqualizerBars
 import com.banya.neulpum.presentation.ui.components.EqualizerCenterReactive
@@ -317,51 +326,25 @@ fun VoiceChatScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 화려한 파티클 이퀄라이저 - 워크플로우 아래 15dp에 배치
+        // 오디오 비주얼라이저 - 고정 위치 (화면 중앙 위쪽)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentAlignment = Alignment.TopCenter
+            contentAlignment = Alignment.Center
         ) {
-            // 워크플로우 아래 15dp에 배치
+            // 고정된 중앙 위쪽 위치
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = if (currentWorkflowStep.isNotEmpty()) 80.dp else 40.dp), // 워크플로우가 있으면 80dp, 없으면 40dp
+                    .offset(y = (-40).dp), // 40dp 위로 이동
                 contentAlignment = Alignment.Center
             ) {
-                // 화려한 파티클 이퀄라이저
-                AndroidView(
-                    factory = { ctx ->
-                        CircularParticleView(ctx).apply { 
-                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                            startVisualizing() 
-                        }
-                    },
-                    update = { view ->
-                        if (isRecording || isPlaying) {
-                            view.startVisualizing()
-                            // 최적화된 FFT 데이터 생성 - 캐시된 계산 사용
-                            val fftData = ByteArray(64) { i ->
-                                val baseLevel = (audioLevel * 60).toInt()
-                                val wave = (kotlin.math.sin(i * 0.3) * 20).toInt()
-                                (baseLevel + wave).coerceIn(0, 127).toByte()
-                            }
-                            view.setFftData(fftData)
-                        } else {
-                            view.startVisualizing()
-                            // 대기 상태 - 간단한 애니메이션
-                            val fftData = ByteArray(64) { i ->
-                                val idle = (kotlin.math.sin(i * 0.2) * 10 + 20).toInt()
-                                idle.coerceIn(0, 127).toByte()
-                            }
-                            view.setFftData(fftData)
-                        }
-                    },
-                    modifier = Modifier
-                        .size(280.dp) // 조금 작게
-                        .background(Color.Transparent)
+                // 예쁜 원형 오디오 비주얼라이저
+                BeautifulCircularVisualizer(
+                    isActive = isRecording || isPlaying,
+                    audioLevel = audioLevel,
+                    modifier = Modifier.size(300.dp)
                 )
             }
         }
@@ -596,5 +579,130 @@ fun VoiceChatScreen(
         )
     }
     
+}
+
+@Composable
+fun BeautifulCircularVisualizer(
+    isActive: Boolean,
+    audioLevel: Float,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "beautiful_visualizer")
+    
+    // 회전 애니메이션
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+    
+    // 펄스 애니메이션
+    // val pulse by infiniteTransition.animateFloat(
+    //     initialValue = 0.9f,
+    //     targetValue = 1.1f,
+    //     animationSpec = infiniteRepeatable(
+    //         animation = tween(3000, easing = EaseInOut),
+    //         repeatMode = RepeatMode.Reverse
+    //     ),
+    //     label = "pulse"
+    // )
+    
+    // 색상 그라데이션 애니메이션
+    val colorShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "color_shift"
+    )
+    
+    Canvas(modifier = modifier) {
+        val center = Offset(size.width / 2, size.height / 2)
+        val radius = minOf(size.width, size.height) / 2 * 0.85f
+        
+        // 그라데이션 배경 원
+        val gradientColors = listOf(
+            Color(0xFF10A37F).copy(alpha = 0.1f),
+            Color(0xFF00D4AA).copy(alpha = 0.05f),
+            Color(0xFF10A37F).copy(alpha = 0.1f)
+        )
+        
+        // drawCircle(
+        //     brush = Brush.radialGradient(
+        //         colors = gradientColors,
+        //         center = center,
+        //         radius = radius * pulse
+        //     ),
+        //     radius = radius * pulse,
+        //     center = center
+        // )
+        
+        if (isActive) {
+            // 활성 상태 - 더 예쁜 바들
+            val barCount = 48
+            val barWidth = 3.dp.toPx()
+            
+            rotate(rotation, center) {
+                for (i in 0 until barCount) {
+                    val angle = (i * 360f / barCount) * (Math.PI / 180f).toFloat()
+                    val baseHeight = if (audioLevel > 0) {
+                        (audioLevel * 80f + sin(i * 0.4f) * 30f).coerceIn(15f, 100f)
+                    } else {
+                        sin(i * 0.3f) * 15f + 25f
+                    }
+                    
+                    val barHeight = baseHeight
+                    val x = center.x + cos(angle) * (radius - barHeight / 2)
+                    val y = center.y + sin(angle) * (radius - barHeight / 2)
+                    
+                    // 그라데이션 색상
+                    val hue = (colorShift + i * 0.1f) % 1f
+                    val barColor = when {
+                        barHeight > 80f -> Color.hsl(hue * 360f, 0.7f, 0.5f)
+                        barHeight > 60f -> Color.hsl(hue * 360f, 0.6f, 0.6f)
+                        barHeight > 40f -> Color.hsl(hue * 360f, 0.5f, 0.7f)
+                        else -> Color.hsl(hue * 360f, 0.4f, 0.8f)
+                    }
+                    
+                    // 둥근 모서리 바
+                    drawRoundRect(
+                        color = barColor,
+                        topLeft = Offset(x - barWidth / 2, y - barHeight / 2),
+                        size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2)
+                    )
+                }
+            }
+            
+        
+        } else {
+            // 대기 상태 - 더 예쁜 애니메이션
+            val dotCount = 16
+            for (i in 0 until dotCount) {
+                val angle = (i * 360f / dotCount) * (Math.PI / 180f).toFloat()
+                val dotRadius = 6.dp.toPx()
+                val dotDistance = radius * 0.75f
+                
+                val x = center.x + cos(angle) * dotDistance
+                val y = center.y + sin(angle) * dotDistance
+                
+                val alpha = (sin(i * 0.3f + rotation * 0.02f) + 1f) / 2f * 0.9f + 0.1f
+                val scale = (sin(i * 0.2f + rotation * 0.01f) + 1f) / 2f * 0.5f + 0.5f
+                
+                drawCircle(
+                    color = Color(0xFF10A37F).copy(alpha = alpha),
+                    radius = dotRadius * scale,
+                    center = Offset(x, y)
+                )
+            }
+            
+        }
+    }
 }
 

@@ -46,7 +46,9 @@ import kotlin.math.sqrt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceChatScreen(
-    paddingValues: PaddingValues = PaddingValues(0.dp)
+    paddingValues: PaddingValues = PaddingValues(0.dp),
+    conversationId: String? = null,
+    onConversationCreated: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val permissionHelper = rememberPermissionHelper()
@@ -75,7 +77,6 @@ fun VoiceChatScreen(
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
     var isAwaitingResponse by remember { mutableStateOf(false) }
-    val audioBuffer = remember { java.io.ByteArrayOutputStream() }
     var audioLevel by remember { mutableStateOf(0f) }
     var visualizer by remember { mutableStateOf<Visualizer?>(null) }
     var pendingText by remember { mutableStateOf<String?>(null) }
@@ -85,7 +86,8 @@ fun VoiceChatScreen(
     var isWsConnecting by remember { mutableStateOf(false) }
     val mainHandler = remember { androidx.core.os.HandlerCompat.createAsync(android.os.Looper.getMainLooper()) }
     var lastRecognizedText by remember { mutableStateOf<String?>(null) }
-
+    var currentConversationId by remember { mutableStateOf(conversationId) }
+    
     
     // 녹음 시간 업데이트
     LaunchedEffect(isRecording) {
@@ -148,29 +150,52 @@ fun VoiceChatScreen(
                 // 연결 지연 시 보낸 텍스트를 즉시 전송
                 val p = pendingText
                 if (!p.isNullOrBlank()) {
-                    wsClient?.sendText(p)
+                    wsClient?.sendText(p, currentConversationId)
                     pendingText = null
                 }
                 
             }
             override fun onTtsChunk(bytes: ByteArray, format: String?) {
-                // 비동기로 오디오 청크 처리 - 코루틴 사용으로 최적화
+                // 기존 방식 (호환성을 위해 유지) - 버퍼링 없이 즉시 재생
                 GlobalScope.launch {
                     try {
                         lastAudioFormat = format
-                        // 청크를 버퍼에 축적하고, 재생은 onDone에서 일괄 처리
-                        audioBuffer.write(bytes)
                         
-                        // 즉시 재생 시도 - onDone을 기다리지 않음
-                        try {
-                            val all = audioBuffer.toByteArray()
-                            if (all.isNotEmpty()) {
-                                val ext = if (format == "wav") ".wav" else ".mp3"
-                                val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
-                                cache.outputStream().use { it.write(all) }
-                                val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
-                                // 모든 ExoPlayer 조작은 메인 스레드에서 실행
-                                mainHandler.post {
+                        if (bytes.isNotEmpty()) {
+                            val ext = if (format == "wav") ".wav" else ".mp3"
+                            val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
+                            cache.writeBytes(bytes)
+                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
+                            mainHandler.post {
+                                player?.stop()
+                                player?.clearMediaItems()
+                                player?.setMediaItem(mediaItem)
+                                player?.prepare()
+                                player?.play()
+                                isPlaying = true
+                                isAwaitingResponse = false
+                                doneReceived = true
+                                fallbackScheduled = false
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+            override fun onTtsChunkStream(bytes: ByteArray, format: String?, chunkIndex: Int, isFinal: Boolean) {
+                // 스트리밍 오디오 청크 처리 - 즉시 재생
+                GlobalScope.launch {
+                    try {
+                        lastAudioFormat = format
+                        
+                        if (bytes.isNotEmpty()) {
+                            val ext = if (format == "wav") ".wav" else ".mp3"
+                            val tempFile = java.io.File.createTempFile("tts_stream_${chunkIndex}_", ext, context.cacheDir)
+                            tempFile.writeBytes(bytes)
+                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(tempFile))
+                            
+                            mainHandler.post {
+                                if (chunkIndex == 0) {
+                                    // 첫 청크는 즉시 재생 시작
                                     player?.stop()
                                     player?.clearMediaItems()
                                     player?.setMediaItem(mediaItem)
@@ -178,14 +203,23 @@ fun VoiceChatScreen(
                                     player?.play()
                                     isPlaying = true
                                     isAwaitingResponse = false
-                                    // 즉시 재생 후 상태 초기화
+                                } else {
+                                    // 후속 청크는 큐에 추가
+                                    player?.addMediaItem(mediaItem)
+                                }
+                                
+                                // 최종 청크인 경우 상태 정리
+                                if (isFinal) {
                                     doneReceived = true
                                     fallbackScheduled = false
+                                    isAwaitingResponse = false
                                 }
                             }
-                        } catch (_: Exception) {}
+                        }
                         
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        println("VoiceChatScreen: Error in onTtsChunkStream: $e")
+                    }
                 }
             }
             override fun onDone() {
@@ -206,6 +240,10 @@ fun VoiceChatScreen(
                 isAwaitingResponse = false
                 isWsConnecting = false
                 
+            }
+            override fun onConversationCreated(conversationId: String) {
+                currentConversationId = conversationId
+                onConversationCreated(conversationId)
             }
         })
         // 연결은 즉시 하지 않음. 마이크 버튼을 눌렀을 때 필요 시 연결.
@@ -327,13 +365,12 @@ fun VoiceChatScreen(
                                     audioLevel = 0f
                                     try { visualizer?.release() } catch (_: Exception) {}
                                     visualizer = null
-                                    try { audioBuffer.reset() } catch (_: Exception) {}
                                     // 상태 변수들 완전 초기화
                                     doneReceived = false
                                     fallbackScheduled = false
                                     isAwaitingResponse = true
                                     if (isWsConnected) {
-                                        wsClient?.sendText(text)
+                                        wsClient?.sendText(text, currentConversationId)
                                     } else {
                                         pendingText = text
                                     }

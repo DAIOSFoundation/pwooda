@@ -470,7 +470,13 @@ fun MainScreen() {
                         }()
                     )
                 }
-                "voice" -> VoiceChatScreen(paddingValues = paddingValues)
+                "voice" -> VoiceChatScreen(
+                    paddingValues = paddingValues,
+                    conversationId = currentConversationId,
+                    onConversationCreated = { newConversationId ->
+                        currentConversationId = newConversationId
+                    }
+                )
                 "settings" -> SettingsScreen(
                     paddingValues = paddingValues,
                     onNavigateToOrganization = { showOrganizationScreen = true },

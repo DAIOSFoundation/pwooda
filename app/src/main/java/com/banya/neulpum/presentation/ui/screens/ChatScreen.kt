@@ -501,16 +501,21 @@ fun ChatScreen(
                         IconButton(
                             onClick = {
                                 if (!isProcessing && (messageText.isNotEmpty() || capturedImage != null)) {
-                                    sendMessage(messageText, capturedImage, chatMessages, currentSteps, isProcessing, currentTool, context, activeConversationId, { newMessages, newSteps, processing, tool, stepDetail ->
-                                        chatMessages = newMessages
-                                        currentSteps = newSteps
-                                        isProcessing = processing
-                                        currentTool = tool
-                                        // currentSteps의 마지막 step의 detail을 사용
-                                        currentStepDetail = if (newSteps.isNotEmpty()) newSteps.last().detail else stepDetail
-                                    }, { convId -> activeConversationId = convId }, { /* onConversationCreated handled in MainActivity */ }, onMessageSent)
+                                    val currentMessage = messageText
+                                    val currentImage = capturedImage
                                     messageText = ""
                                     capturedImage = null
+                                    
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        sendMessage(currentMessage, currentImage, chatMessages, currentSteps, isProcessing, currentTool, context, activeConversationId, { newMessages, newSteps, processing, tool, stepDetail ->
+                                            chatMessages = newMessages
+                                            currentSteps = newSteps
+                                            isProcessing = processing
+                                            currentTool = tool
+                                            // currentSteps의 마지막 step의 detail을 사용
+                                            currentStepDetail = if (newSteps.isNotEmpty()) newSteps.last().detail else stepDetail
+                                        }, { convId -> activeConversationId = convId }, { /* onConversationCreated handled in MainActivity */ }, onMessageSent)
+                                    }
                                 }
                             },
                             modifier = Modifier.size(48.dp),
@@ -538,7 +543,7 @@ fun ChatScreen(
 
  
 
-private fun sendMessage(
+private suspend fun sendMessage(
     content: String,
     image: Bitmap?,
     currentMessages: List<ChatMessage>,
@@ -565,30 +570,27 @@ private fun sendMessage(
     // 최근 채팅 목록에 추가
     onMessageSent(content)
     
-    // SSE 채팅 시작
-    CoroutineScope(Dispatchers.Main).launch {
-        try {
-            val sseService = SSEChatService()
-            
-            // 저장된 organization API key와 access token 가져오기
-            val organizationApiKey = if (context != null) {
-                val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
-                prefs.getString("organization_api_key", null)
-            } else {
-                null
-            }
-            
-            val accessToken = if (context != null) {
-                val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
-                prefs.getString("access_token", null)
-            } else {
-                null
-            }
-            
-            println("Using Organization API Key: $organizationApiKey")
-            println("Using Access Token: ${accessToken?.take(20)}...")
-            
-            sseService.chatSSE(
+        // SSE 채팅 시작
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val sseService = SSEChatService()
+
+                // 저장된 organization API key와 access token 가져오기
+                val organizationApiKey = if (context != null) {
+                    val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+                    prefs.getString("organization_api_key", null)
+                } else {
+                    null
+                }
+
+                val accessToken = if (context != null) {
+                    val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+                    prefs.getString("access_token", null)
+                } else {
+                    null
+                }
+
+                val flow = sseService.chatSSE(
                 message = content,
                 organizationApiKey = organizationApiKey,
                 accessToken = accessToken,
@@ -618,7 +620,12 @@ private fun sendMessage(
                     
                     android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                 }
-            ).collect { event ->
+            )
+            
+            println("ChatScreen - Flow created, starting collect")
+            
+            flow.collect { event ->
+                println("ChatScreen - Received SSE event: $event")
                 when (event) {
                     is ChatSSEEvent.Step -> {
                         println("SSE Step Event: ${event.stage} - ${event.detail}")
@@ -665,12 +672,48 @@ private fun sendMessage(
                 }
             }
         } catch (e: Exception) {
-            val errorMessage = ChatMessage(
-                id = (System.currentTimeMillis() + 1).toString(),
-                content = "❌ 연결 오류: ${e.message}",
-                isUser = false,
-                isTyping = true // 타이핑 효과 활성화
-            )
+            val errorMessage = when {
+                e.message?.contains("192.168.0.3") == true -> {
+                    ChatMessage(
+                        id = (System.currentTimeMillis() + 1).toString(),
+                        content = "❌ 서버 연결 오류: 서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.",
+                        isUser = false,
+                        isTyping = true
+                    )
+                }
+                e.message?.contains("Connection refused") == true -> {
+                    ChatMessage(
+                        id = (System.currentTimeMillis() + 1).toString(),
+                        content = "❌ 서버 연결 거부: 서버가 응답하지 않습니다. 서버 상태를 확인해주세요.",
+                        isUser = false,
+                        isTyping = true
+                    )
+                }
+                e.message?.contains("timeout") == true -> {
+                    ChatMessage(
+                        id = (System.currentTimeMillis() + 1).toString(),
+                        content = "❌ 연결 시간 초과: 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.",
+                        isUser = false,
+                        isTyping = true
+                    )
+                }
+                e.message?.contains("Network is unreachable") == true -> {
+                    ChatMessage(
+                        id = (System.currentTimeMillis() + 1).toString(),
+                        content = "❌ 네트워크 오류: 인터넷 연결을 확인해주세요.",
+                        isUser = false,
+                        isTyping = true
+                    )
+                }
+                else -> {
+                    ChatMessage(
+                        id = (System.currentTimeMillis() + 1).toString(),
+                        content = "❌ 연결 오류: ${e.message ?: "알 수 없는 오류가 발생했습니다."}",
+                        isUser = false,
+                        isTyping = true
+                    )
+                }
+            }
             onUpdate(newMessages + errorMessage, currentSteps, false, null, null)
         }
     }

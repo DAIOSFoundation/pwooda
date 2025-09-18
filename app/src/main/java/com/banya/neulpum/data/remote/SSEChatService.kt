@@ -33,44 +33,36 @@ class SSEChatService {
         conversationId: String? = null,
         imageBase64: String? = null
     ): Flow<ChatSSEEvent> = callbackFlow {
-        val url = HttpUrl.Builder()
-            .scheme("https")
-            .host("api-llmops.banya.ai")
-            .addPathSegments("api/v1/chat/sse")
+        try {
+            val baseUrl = AppConfig.BASE_HOST
+            val cleanUrl = baseUrl.replace(Regex("^https?://"), "")
+            val hostAndPort = cleanUrl.split(":")
+            val host = hostAndPort[0]
+            val port = if (hostAndPort.size > 1) hostAndPort[1].toInt() else if (baseUrl.startsWith("https")) 443 else 80
+            
+            val url = HttpUrl.Builder()
+                .scheme(if (baseUrl.startsWith("https")) "https" else "http")
+                .host(host)
+                .port(port)
+                .addPathSegments("api/v1/chat/sse")
+                .build()
+        println("SSE Conversation ID: $conversationId")
+        
+        // 모든 요청을 POST로 변경 (GET 요청에서 문제 발생)
+        val requestBody = FormBody.Builder()
+            .add("message", message)
+            .apply {
+                providerId?.let { add("provider_id", it) }
+                conversationId?.let { add("conversation_id", it) }
+                imageBase64?.let { add("image_base64", it) }
+            }
             .build()
         
-        println("SSE URL: $url")
-        
-        // 이미지가 있으면 POST 요청으로 변경
-        val requestBuilder = if (imageBase64 != null) {
-            val requestBody = FormBody.Builder()
-                .add("message", message)
-                .apply {
-                    providerId?.let { add("provider_id", it) }
-                    conversationId?.let { add("conversation_id", it) }
-                    add("image_base64", imageBase64)
-                }
-                .build()
-            
-            Request.Builder()
-                .url(url)
-                .post(requestBody)
-                .addHeader("Accept", "text/event-stream")
-                .addHeader("Cache-Control", "no-cache")
-        } else {
-            val urlWithParams = url.newBuilder()
-                .addQueryParameter("message", message)
-                .apply {
-                    providerId?.let { addQueryParameter("provider_id", it) }
-                    conversationId?.let { addQueryParameter("conversation_id", it) }
-                }
-                .build()
-            
-            Request.Builder()
-                .url(urlWithParams)
-                .addHeader("Accept", "text/event-stream")
-                .addHeader("Cache-Control", "no-cache")
-        }
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .post(requestBody)
+            .addHeader("Accept", "text/event-stream")
+            .addHeader("Cache-Control", "no-cache")
         
         organizationApiKey?.let {
             requestBuilder.addHeader("X-API-Key", it)
@@ -78,6 +70,9 @@ class SSEChatService {
         
         accessToken?.let {
             requestBuilder.addHeader("Authorization", "Bearer $it")
+            println("SSE Authorization header added: Bearer ${it.take(20)}...")
+        } ?: run {
+            println("SSE No access token provided")
         }
         
         val request = requestBuilder.build()
@@ -111,7 +106,18 @@ class SSEChatService {
                 
                 override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
                     println("SSE Connection failed: ${t?.message}")
-                    trySend(ChatSSEEvent.Error("Connection failed: ${t?.message ?: "Unknown error"}"))
+                    val errorMessage = when {
+                        t?.message?.contains("192.168.0.3") == true -> "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요."
+                        t?.message?.contains("Connection refused") == true -> "서버가 응답하지 않습니다. 서버 상태를 확인해주세요."
+                        t?.message?.contains("timeout") == true -> "서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요."
+                        t?.message?.contains("Network is unreachable") == true -> "인터넷 연결을 확인해주세요."
+                        response?.code == 401 -> "인증이 필요합니다. 다시 로그인해주세요."
+                        response?.code == 403 -> "접근 권한이 없습니다."
+                        response?.code == 404 -> "서비스를 찾을 수 없습니다."
+                        response?.code == 500 -> "서버 내부 오류가 발생했습니다."
+                        else -> "연결 실패: ${t?.message ?: "알 수 없는 오류"}"
+                    }
+                    trySend(ChatSSEEvent.Error(errorMessage))
                     close()
                 }
                 
@@ -130,7 +136,23 @@ class SSEChatService {
             println("SSE Request error: ${e.message}")
             println("SSE Request error type: ${e.javaClass.simpleName}")
             e.printStackTrace()
-            trySend(ChatSSEEvent.Error("Request error: ${e.message ?: "Unknown error"}"))
+            val errorMessage = when {
+                e.message?.contains("192.168.0.3") == true -> "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요."
+                e.message?.contains("Connection refused") == true -> "서버가 응답하지 않습니다. 서버 상태를 확인해주세요."
+                e.message?.contains("timeout") == true -> "서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요."
+                e.message?.contains("Network is unreachable") == true -> "인터넷 연결을 확인해주세요."
+                e is java.net.UnknownHostException -> "서버를 찾을 수 없습니다. 네트워크 설정을 확인해주세요."
+                e is java.net.ConnectException -> "서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요."
+                e is java.net.SocketTimeoutException -> "연결 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."
+                else -> "요청 오류: ${e.message ?: "알 수 없는 오류"}"
+            }
+            trySend(ChatSSEEvent.Error(errorMessage))
+            close()
+        }
+        } catch (e: Exception) {
+            println("SSEChatService - Exception in callbackFlow: ${e.message}")
+            e.printStackTrace()
+            trySend(ChatSSEEvent.Error("Flow error: ${e.message}"))
             close()
         }
     }

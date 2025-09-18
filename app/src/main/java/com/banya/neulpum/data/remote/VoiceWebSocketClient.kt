@@ -15,10 +15,12 @@ class VoiceWebSocketClient(
     interface Listener {
         fun onOpen()
         fun onTtsChunk(bytes: ByteArray, format: String?)
+        fun onTtsChunkStream(bytes: ByteArray, format: String?, chunkIndex: Int, isFinal: Boolean)
         fun onDone()
         fun onError(error: String)
         fun onLog(stage: String, message: String)
         fun onClose(code: Int, reason: String)
+        fun onConversationCreated(conversationId: String)
     }
 
     private var webSocket: WebSocket? = null
@@ -60,6 +62,23 @@ class VoiceWebSocketClient(
                                     println("VoiceWebSocketClient: Empty TTS chunk received")
                                 }
                             }
+                            "tts_audio_chunk" -> {
+                                val format = json.optString("format", null)
+                                val chunkB64 = json.optString("chunk", "")
+                                val chunkIndex = json.optInt("chunk_index", 0)
+                                val isFinal = json.optBoolean("is_final", false)
+                                println("VoiceWebSocketClient: Received streaming TTS chunk $chunkIndex, format=$format, b64_len=${chunkB64.length}, isFinal=$isFinal")
+                                if (chunkB64.isNotEmpty()) {
+                                    val bytes = Base64.decode(chunkB64, Base64.DEFAULT)
+                                    println("VoiceWebSocketClient: Decoded streaming TTS bytes: ${bytes.size} bytes")
+                                    listener.onTtsChunkStream(bytes, format, chunkIndex, isFinal)
+                                } else if (isFinal) {
+                                    println("VoiceWebSocketClient: Final streaming TTS chunk received")
+                                    listener.onTtsChunkStream(ByteArray(0), format, chunkIndex, isFinal)
+                                } else {
+                                    println("VoiceWebSocketClient: Empty streaming TTS chunk received")
+                                }
+                            }
                             "error" -> {
                                 val msg = json.optString("message", "unknown_error")
                                 listener.onError(msg)
@@ -71,6 +90,12 @@ class VoiceWebSocketClient(
                                 listener.onLog(stage, msg)
                             }
                             "done" -> listener.onDone()
+                            "conversation_created" -> {
+                                val convId = json.optString("conversation_id", "")
+                                if (convId.isNotEmpty()) {
+                                    listener.onConversationCreated(convId)
+                                }
+                            }
                         }
                     } catch (e: Exception) {
                         listener.onError("Invalid message: ${e.message}")

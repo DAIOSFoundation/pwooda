@@ -16,6 +16,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,9 +60,9 @@ fun VoiceChatScreen(
     var partialText by remember { mutableStateOf("") }
     var speechService by remember { mutableStateOf<GoogleSpeechService?>(null) }
     
-    // 워크플로우 상태
-    var currentWorkflowStep by remember { mutableStateOf("") }
-    var isProcessing by remember { mutableStateOf(false) }
+        // 워크플로우 상태
+        var currentWorkflowStep by remember { mutableStateOf("") }
+        var isProcessing by remember { mutableStateOf(false) }
     
     var hasMicrophonePermission by remember {
         mutableStateOf(
@@ -229,10 +230,18 @@ fun VoiceChatScreen(
                 }
             }
                 override fun onDone() {
+                    println("VoiceChatScreen: onDone called")
+                    android.util.Log.d("VoiceChatScreen", "onDone called")
                     // onDone은 이제 상태 초기화만 담당 (재생은 onTtsChunk에서 처리)
                     doneReceived = true
                     fallbackScheduled = false
                     isAwaitingResponse = false
+                    
+                    // 워크플로우 완료 상태로 업데이트
+                    currentWorkflowStep = ""
+                    isProcessing = false
+                    println("VoiceChatScreen: Workflow completed - step cleared, processing=false")
+                    android.util.Log.d("VoiceChatScreen", "Workflow completed - step cleared, processing=false")
                     
                     // 보이스 채팅 완료 시 대화 생성 콜백 호출 (대화가 생성되었다면)
                     if (currentConversationId != null) {
@@ -244,22 +253,24 @@ fun VoiceChatScreen(
                 isWsConnecting = false
             }
             override fun onLog(stage: String, message: String) {
-                // 워크플로우 단계 업데이트
+                println("VoiceChatScreen: onLog received - Stage: $stage, Message: $message")
+                android.util.Log.d("VoiceChatScreen", "onLog received - Stage: $stage, Message: $message")
+                // 워크플로우 단계 업데이트 - 더 알아보기 쉽게
                 when (stage) {
-                    "plan" -> {
-                        currentWorkflowStep = "계획 수립 중..."
+                    "plan", "planner" -> {
+                        currentWorkflowStep = "🤔 생각 중..."
                         isProcessing = true
                     }
                     "tool_executor" -> {
-                        currentWorkflowStep = "도구 실행 중..."
+                        currentWorkflowStep = "🔧 작업 중..."
                         isProcessing = true
                     }
                     "summarize" -> {
-                        currentWorkflowStep = "응답 생성 중..."
+                        currentWorkflowStep = "✍️ 답변 작성 중..."
                         isProcessing = true
                     }
                     "tts" -> {
-                        currentWorkflowStep = "음성 변환 중..."
+                        currentWorkflowStep = "🎵 음성 변환 중..."
                         isProcessing = true
                     }
                     "done" -> {
@@ -267,10 +278,18 @@ fun VoiceChatScreen(
                         isProcessing = false
                     }
                     else -> {
-                        currentWorkflowStep = stage
+                        currentWorkflowStep = when (stage) {
+                            "rag" -> "📚 정보 검색 중..."
+                            "mcp" -> "🔗 도구 실행 중..."
+                            "api" -> "🌐 API 호출 중..."
+                            "db" -> "💾 데이터 처리 중..."
+                            else -> "⚙️ 처리 중..."
+                        }
                         isProcessing = true
                     }
                 }
+                println("VoiceChatScreen: Updated workflow step: $currentWorkflowStep, isProcessing: $isProcessing")
+                android.util.Log.d("VoiceChatScreen", "Updated workflow step: $currentWorkflowStep, isProcessing: $isProcessing")
             }
             override fun onClose(code: Int, reason: String) {
                 isWsConnected = false
@@ -298,52 +317,101 @@ fun VoiceChatScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 상단 화려한 파티클 이퀄라이저 - 상단에서 여백 주고 조금 내려서 배치
+        // 화려한 파티클 이퀄라이저 - 워크플로우 아래 15dp에 배치
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             contentAlignment = Alignment.TopCenter
         ) {
-            // 상단에서 여백을 주고 조금 내려서 배치
+            // 워크플로우 아래 15dp에 배치
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 40.dp),
+                    .offset(y = if (currentWorkflowStep.isNotEmpty()) 80.dp else 40.dp), // 워크플로우가 있으면 80dp, 없으면 40dp
                 contentAlignment = Alignment.Center
             ) {
-            // 화려한 파티클 이퀄라이저
-            AndroidView(
-                factory = { ctx ->
-                    CircularParticleView(ctx).apply { 
-                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                        startVisualizing() 
-                    }
-                },
-                update = { view ->
-                    if (isRecording || isPlaying) {
-                        view.startVisualizing()
-                        // 최적화된 FFT 데이터 생성 - 캐시된 계산 사용
-                        val fftData = ByteArray(64) { i ->
-                            val baseLevel = (audioLevel * 60).toInt()
-                            val wave = (kotlin.math.sin(i * 0.3) * 20).toInt()
-                            (baseLevel + wave).coerceIn(0, 127).toByte()
+                // 화려한 파티클 이퀄라이저
+                AndroidView(
+                    factory = { ctx ->
+                        CircularParticleView(ctx).apply { 
+                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                            startVisualizing() 
                         }
-                        view.setFftData(fftData)
-                    } else {
-                        view.startVisualizing()
-                        // 대기 상태 - 간단한 애니메이션
-                        val fftData = ByteArray(64) { i ->
-                            val idle = (kotlin.math.sin(i * 0.2) * 10 + 20).toInt()
-                            idle.coerceIn(0, 127).toByte()
+                    },
+                    update = { view ->
+                        if (isRecording || isPlaying) {
+                            view.startVisualizing()
+                            // 최적화된 FFT 데이터 생성 - 캐시된 계산 사용
+                            val fftData = ByteArray(64) { i ->
+                                val baseLevel = (audioLevel * 60).toInt()
+                                val wave = (kotlin.math.sin(i * 0.3) * 20).toInt()
+                                (baseLevel + wave).coerceIn(0, 127).toByte()
+                            }
+                            view.setFftData(fftData)
+                        } else {
+                            view.startVisualizing()
+                            // 대기 상태 - 간단한 애니메이션
+                            val fftData = ByteArray(64) { i ->
+                                val idle = (kotlin.math.sin(i * 0.2) * 10 + 20).toInt()
+                                idle.coerceIn(0, 127).toByte()
+                            }
+                            view.setFftData(fftData)
                         }
-                        view.setFftData(fftData)
-                    }
-                },
+                    },
+                    modifier = Modifier
+                        .size(280.dp) // 조금 작게
+                        .background(Color.Transparent)
+                )
+            }
+        }
+        
+        // 워크플로우 표시기 - 햄버거바+제목에서 15dp 아래 (예쁘게 꾸미기)
+        if (currentWorkflowStep.isNotEmpty()) {
+            Box(
                 modifier = Modifier
-                    .size(300.dp)
-                    .background(Color.Transparent)
-            )
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .offset(y = 15.dp), // 햄버거바+제목에서 15dp 아래
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    // 그라데이션 원형 로딩
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFF10A37F).copy(alpha = 0.8f),
+                                        Color(0xFF10A37F).copy(alpha = 0.3f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = currentWorkflowStep,
+                        color = Color(0xFF10A37F),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
             }
         }
         // 하단 영역(패딩 포함) UI - 배경 제거하여 중앙 오버레이가 보이도록
@@ -361,40 +429,6 @@ fun VoiceChatScreen(
                         .padding(bottom = 120.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // 워크플로우 표시기
-                    if (currentWorkflowStep.isNotEmpty()) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFF10A37F).copy(alpha = 0.1f)
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = Color(0xFF10A37F),
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = currentWorkflowStep,
-                                    color = Color(0xFF10A37F),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
                     
                     EqualizerBars(active = true, barColor = Color(0xFF10A37F))
                     Spacer(modifier = Modifier.height(8.dp))

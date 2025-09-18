@@ -40,6 +40,8 @@ class VoiceWebSocketClient(
         val request = reqBuilder.build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                println("VoiceWebSocketClient: WebSocket connected")
+                android.util.Log.d("VoiceWebSocketClient", "WebSocket connected")
                 listener.onOpen()
             }
 
@@ -87,9 +89,14 @@ class VoiceWebSocketClient(
                                 val stage = json.optString("stage", "")
                                 val msg = json.optString("message", "")
                                 println("VoiceWebSocketClient: Log received - Stage: $stage, Message: $msg")
+                                android.util.Log.d("VoiceWebSocketClient", "Log received - Stage: $stage, Message: $msg")
                                 listener.onLog(stage, msg)
                             }
-                            "done" -> listener.onDone()
+                            "done" -> {
+                                println("VoiceWebSocketClient: Done event received")
+                                android.util.Log.d("VoiceWebSocketClient", "Done event received")
+                                listener.onDone()
+                            }
                             "conversation_created" -> {
                                 val convId = json.optString("conversation_id", "")
                                 if (convId.isNotEmpty()) {

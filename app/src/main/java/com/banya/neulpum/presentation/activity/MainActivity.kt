@@ -472,9 +472,15 @@ fun MainScreen() {
                 }
                 "voice" -> VoiceChatScreen(
                     paddingValues = paddingValues,
-                    conversationId = currentConversationId,
+                    conversationId = currentConversationId, // 일반 채팅과 동일하게 currentConversationId 전달
                     onConversationCreated = { newConversationId ->
                         currentConversationId = newConversationId
+                        // 보이스 채팅 대화 생성 후 최근 채팅 목록 새로고침
+                        scope.launch {
+                            val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+                            val apiKey = prefs.getString("organization_api_key", "") ?: ""
+                            if (apiKey.isNotEmpty()) refreshRecent(apiKey) {}
+                        }
                     }
                 )
                 "settings" -> SettingsScreen(

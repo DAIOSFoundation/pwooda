@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -58,6 +59,10 @@ fun VoiceChatScreen(
     var partialText by remember { mutableStateOf("") }
     var speechService by remember { mutableStateOf<GoogleSpeechService?>(null) }
     
+    // 워크플로우 상태
+    var currentWorkflowStep by remember { mutableStateOf("") }
+    var isProcessing by remember { mutableStateOf(false) }
+    
     var hasMicrophonePermission by remember {
         mutableStateOf(
             permissionHelper.isPermissionGranted(PermissionHelper.RECORD_AUDIO_PERMISSION)
@@ -86,6 +91,7 @@ fun VoiceChatScreen(
     var isWsConnecting by remember { mutableStateOf(false) }
     val mainHandler = remember { androidx.core.os.HandlerCompat.createAsync(android.os.Looper.getMainLooper()) }
     var lastRecognizedText by remember { mutableStateOf<String?>(null) }
+    // 음성 채팅도 일반 채팅과 동일하게 conversationId 사용
     var currentConversationId by remember { mutableStateOf(conversationId) }
     
     
@@ -150,7 +156,7 @@ fun VoiceChatScreen(
                 // 연결 지연 시 보낸 텍스트를 즉시 전송
                 val p = pendingText
                 if (!p.isNullOrBlank()) {
-                    wsClient?.sendText(p, currentConversationId)
+                    wsClient?.sendText(p, currentConversationId) // 기존 대화 사용 (일반 채팅과 동일)
                     pendingText = null
                 }
                 
@@ -222,18 +228,49 @@ fun VoiceChatScreen(
                     }
                 }
             }
-            override fun onDone() {
-                // onDone은 이제 상태 초기화만 담당 (재생은 onTtsChunk에서 처리)
-                doneReceived = true
-                fallbackScheduled = false
-                isAwaitingResponse = false
-            }
+                override fun onDone() {
+                    // onDone은 이제 상태 초기화만 담당 (재생은 onTtsChunk에서 처리)
+                    doneReceived = true
+                    fallbackScheduled = false
+                    isAwaitingResponse = false
+                    
+                    // 보이스 채팅 완료 시 대화 생성 콜백 호출 (대화가 생성되었다면)
+                    if (currentConversationId != null) {
+                        onConversationCreated(currentConversationId!!)
+                    }
+                }
             override fun onError(error: String) {
                 isAwaitingResponse = false
                 isWsConnecting = false
             }
             override fun onLog(stage: String, message: String) {
-                // 서버 로그는 필요시에만 처리
+                // 워크플로우 단계 업데이트
+                when (stage) {
+                    "plan" -> {
+                        currentWorkflowStep = "계획 수립 중..."
+                        isProcessing = true
+                    }
+                    "tool_executor" -> {
+                        currentWorkflowStep = "도구 실행 중..."
+                        isProcessing = true
+                    }
+                    "summarize" -> {
+                        currentWorkflowStep = "응답 생성 중..."
+                        isProcessing = true
+                    }
+                    "tts" -> {
+                        currentWorkflowStep = "음성 변환 중..."
+                        isProcessing = true
+                    }
+                    "done" -> {
+                        currentWorkflowStep = ""
+                        isProcessing = false
+                    }
+                    else -> {
+                        currentWorkflowStep = stage
+                        isProcessing = true
+                    }
+                }
             }
             override fun onClose(code: Int, reason: String) {
                 isWsConnected = false
@@ -241,10 +278,10 @@ fun VoiceChatScreen(
                 isWsConnecting = false
                 
             }
-            override fun onConversationCreated(conversationId: String) {
-                currentConversationId = conversationId
-                onConversationCreated(conversationId)
-            }
+                override fun onConversationCreated(conversationId: String) {
+                    currentConversationId = conversationId
+                    onConversationCreated(conversationId)
+                }
         })
         // 연결은 즉시 하지 않음. 마이크 버튼을 눌렀을 때 필요 시 연결.
     }
@@ -324,6 +361,41 @@ fun VoiceChatScreen(
                         .padding(bottom = 120.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // 워크플로우 표시기
+                    if (currentWorkflowStep.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFF10A37F).copy(alpha = 0.1f)
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = Color(0xFF10A37F),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = currentWorkflowStep,
+                                    color = Color(0xFF10A37F),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    
                     EqualizerBars(active = true, barColor = Color(0xFF10A37F))
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -347,6 +419,9 @@ fun VoiceChatScreen(
                         // 새 녹음 시작 시 기존 최종 텍스트는 숨김
                         lastRecognizedText = null
                         isRecording = true
+                        
+                        // 보이스 채팅 시작 시에는 새로운 대화를 생성하지 않음
+                        // 서버에서 conversation_created 이벤트를 받을 때만 onConversationCreated 호출
                         partialText = ""
                         // 보이스 요약 텍스트 초기화 제거
                         speechService?.startSpeechRecognition(
@@ -370,7 +445,7 @@ fun VoiceChatScreen(
                                     fallbackScheduled = false
                                     isAwaitingResponse = true
                                     if (isWsConnected) {
-                                        wsClient?.sendText(text, currentConversationId)
+                                        wsClient?.sendText(text, currentConversationId) // 기존 대화 사용 (일반 채팅과 동일)
                                     } else {
                                         pendingText = text
                                     }

@@ -9,11 +9,14 @@ import com.banya.neulpum.data.remote.UserUpdateRequest
 import com.banya.neulpum.data.remote.CheckEmailRequest
 import com.banya.neulpum.data.remote.SendVerificationEmailRequest
 import com.banya.neulpum.data.remote.VerifyEmailRequest
+import com.banya.neulpum.data.remote.AccountDeletionRequest
+import com.banya.neulpum.data.remote.AccountDeletionVerifyRequest
 import com.banya.neulpum.domain.entity.AuthResponse
 import com.banya.neulpum.domain.entity.LoginRequest
 import com.banya.neulpum.domain.entity.SignupRequest
 import com.banya.neulpum.domain.entity.User
 import com.banya.neulpum.domain.repository.AuthRepository
+import com.banya.neulpum.domain.repository.AccountDeletionStatus
 import kotlinx.coroutines.delay
 import java.util.*
 
@@ -419,6 +422,66 @@ class AuthRepositoryImpl(
             } else {
                 val errorBody = response.errorBody()?.string() ?: "알 수 없는 오류"
                 Result.failure(Exception("이메일 인증 실패: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun requestAccountDeletion(email: String): Result<String> {
+        return try {
+            val response = remote.requestAccountDeletion(AccountDeletionRequest(email = email))
+            
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                Result.success(apiResponse?.data?.message ?: "인증 이메일이 발송되었습니다.")
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "알 수 없는 오류"
+                Result.failure(Exception("계정 삭제 요청 실패: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun verifyAccountDeletion(token: String): Result<String> {
+        return try {
+            val response = remote.verifyAccountDeletion(AccountDeletionVerifyRequest(token = token))
+            
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                Result.success(apiResponse?.data?.message ?: "본인 확인이 완료되었습니다.")
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "알 수 없는 오류"
+                Result.failure(Exception("계정 삭제 인증 실패: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun getAccountDeletionStatus(token: String): Result<AccountDeletionStatus> {
+        return try {
+            val response = remote.getAccountDeletionStatus(token)
+            
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                val data = apiResponse?.data
+                if (data != null) {
+                    val status = AccountDeletionStatus(
+                        id = data.id,
+                        email = data.email,
+                        isVerified = data.is_verified,
+                        createdAt = data.created_at,
+                        verifiedAt = data.verified_at
+                    )
+                    Result.success(status)
+                } else {
+                    Result.failure(Exception("상태 정보를 가져올 수 없습니다."))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "알 수 없는 오류"
+                Result.failure(Exception("상태 확인 실패: $errorBody"))
             }
         } catch (e: Exception) {
             Result.failure(e)

@@ -33,6 +33,16 @@ class AuthRemoteDataSource {
     
     suspend fun verifyEmail(request: VerifyEmailRequest): Response<ApiResponse<VerifyEmailResponse>> =
         api.verifyEmail(request)
+    
+    // 계정 삭제 요청 관련 메서드
+    suspend fun requestAccountDeletion(request: AccountDeletionRequest): Response<ApiResponse<AccountDeletionResponse>> =
+        api.requestAccountDeletion(request)
+    
+    suspend fun verifyAccountDeletion(request: AccountDeletionVerifyRequest): Response<ApiResponse<AccountDeletionVerifyResponse>> =
+        api.verifyAccountDeletion(request)
+    
+    suspend fun getAccountDeletionStatus(token: String): Response<ApiResponse<AccountDeletionStatusResponse>> =
+        api.getAccountDeletionStatus(token)
 }
 
 

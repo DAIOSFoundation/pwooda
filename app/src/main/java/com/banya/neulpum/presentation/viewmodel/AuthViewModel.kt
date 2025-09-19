@@ -10,6 +10,7 @@ import com.banya.neulpum.domain.entity.LoginRequest
 import com.banya.neulpum.domain.entity.SignupRequest
 import com.banya.neulpum.domain.entity.User
 import com.banya.neulpum.domain.repository.AuthRepository
+import com.banya.neulpum.domain.repository.AccountDeletionStatus
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
@@ -224,6 +225,19 @@ class AuthViewModel(
     
     suspend fun verifyEmail(email: String, verificationCode: String): Result<Boolean> {
         return authRepository.verifyEmail(email, verificationCode)
+    }
+    
+    // 계정 삭제 요청 관련 메서드
+    suspend fun requestAccountDeletion(email: String): Result<String> {
+        return authRepository.requestAccountDeletion(email)
+    }
+    
+    suspend fun verifyAccountDeletion(token: String): Result<String> {
+        return authRepository.verifyAccountDeletion(token)
+    }
+    
+    suspend fun getAccountDeletionStatus(token: String): Result<AccountDeletionStatus> {
+        return authRepository.getAccountDeletionStatus(token)
     }
 }
 

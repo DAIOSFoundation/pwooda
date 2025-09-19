@@ -50,6 +50,22 @@ interface AuthApiService {
     suspend fun verifyEmail(
         @Body request: VerifyEmailRequest
     ): Response<ApiResponse<VerifyEmailResponse>>
+    
+    // 계정 삭제 요청 API
+    @POST("users/delete/request")
+    suspend fun requestAccountDeletion(
+        @Body request: AccountDeletionRequest
+    ): Response<ApiResponse<AccountDeletionResponse>>
+    
+    @POST("users/delete/verify")
+    suspend fun verifyAccountDeletion(
+        @Body request: AccountDeletionVerifyRequest
+    ): Response<ApiResponse<AccountDeletionVerifyResponse>>
+    
+    @GET("users/delete/status/{token}")
+    suspend fun getAccountDeletionStatus(
+        @Path("token") token: String
+    ): Response<ApiResponse<AccountDeletionStatusResponse>>
 }
 
 data class ApiResponse<T>(
@@ -128,6 +144,34 @@ data class VerifyEmailRequest(
 data class VerifyEmailResponse(
     val message: String,
     val verified: Boolean
+)
+
+// 계정 삭제 요청 관련 데이터 클래스
+data class AccountDeletionRequest(
+    val email: String
+)
+
+data class AccountDeletionResponse(
+    val message: String,
+    val email: String
+)
+
+data class AccountDeletionVerifyRequest(
+    val token: String
+)
+
+data class AccountDeletionVerifyResponse(
+    val message: String,
+    val email: String,
+    val verified_at: String
+)
+
+data class AccountDeletionStatusResponse(
+    val id: String,
+    val email: String,
+    val is_verified: Boolean,
+    val created_at: String,
+    val verified_at: String?
 )
 
 data class RefreshRequest(

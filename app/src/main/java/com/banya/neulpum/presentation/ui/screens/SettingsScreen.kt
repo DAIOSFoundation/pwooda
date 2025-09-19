@@ -59,6 +59,8 @@ fun SettingsScreen(
     
     var currentSettings by remember { mutableStateOf<AppSettings?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showAccountDeletionRequest by remember { mutableStateOf(false) }
+    var showAccountSection by remember { mutableStateOf(false) }
     var showPrivacyPolicyScreen by remember { mutableStateOf(false) }
     var showTermsOfServiceScreen by remember { mutableStateOf(false) }
     
@@ -180,6 +182,46 @@ fun SettingsScreen(
             }
         }
 
+        // 계정 섹션
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .widthIn(max = 480.dp)
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 10.dp)) {
+                        SettingListRow(
+                            title = "계정",
+                            onClick = { 
+                                showAccountSection = true 
+                            }
+                        )
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
+                        SettingListRow(
+                            title = "로그아웃",
+                            onClick = {
+                                authViewModel.logout()
+                                // 이동: 로그인 화면
+                                val intent = Intent(context, LoginActivity::class.java)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                                // 현재 Activity 종료
+                                (context as? Activity)?.finish()
+                            }
+                        )
+                    }
+                }
+            }
+        }
 
         // 통합 리스트: 개인정보처리방침 / 이용약관 / 앱 정보(버전)
         Box(
@@ -232,53 +274,12 @@ fun SettingsScreen(
                             trailingText = "v$versionName",
                             onClick = {}
                         )
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
                     }
                 }
             }
         }
 
-        // 하단: 로그아웃 / 회원 탈퇴 (리스트 스타일)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .widthIn(max = 480.dp)
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 10.dp)) {
-                        SettingListRow(
-                            title = "로그아웃",
-                            onClick = {
-                                authViewModel.logout()
-                                // 이동: 로그인 화면
-                                val intent = Intent(context, LoginActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(intent)
-                                // 현재 Activity 종료
-                                (context as? Activity)?.finish()
-                            }
-                        )
-                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
-                        SettingListRow(
-                            title = "회원 탈퇴",
-                            danger = true,
-                            centered = true,
-                            onClick = { 
-                                showDeleteConfirm = true 
-                            }
-                        )
-                    }
-                }
-            }
-        }
     }
     
     
@@ -306,6 +307,35 @@ fun SettingsScreen(
                         // 에러 처리
                     }
                 }
+            }
+        )
+    }
+
+    // 계정 삭제 요청 화면
+    if (showAccountDeletionRequest) {
+        BackHandler {
+            showAccountDeletionRequest = false
+        }
+        AccountDeletionRequestScreen(
+            onBack = { showAccountDeletionRequest = false },
+            authViewModel = authViewModel
+        )
+    }
+
+    // 계정 섹션 화면
+    if (showAccountSection) {
+        BackHandler {
+            showAccountSection = false
+        }
+        AccountSectionScreen(
+            onBack = { showAccountSection = false },
+            onAccountDeletionRequest = { 
+                showAccountSection = false
+                showAccountDeletionRequest = true 
+            },
+            onDeleteAccount = { 
+                showAccountSection = false
+                showDeleteConfirm = true 
             }
         )
     }

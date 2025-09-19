@@ -108,76 +108,80 @@ fun LoginScreen(
         }
     }
     
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .verticalScroll(rememberScrollState())
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(horizontal = 15.dp, vertical = 32.dp)
     ) {
-        // 로고 및 제목
-        Text(
-            text = "늘품",
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF10A37F),
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        
-        // 모드 전환 버튼
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFF7F7F8)
-            ),
-            shape = RoundedCornerShape(16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 70.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Button(
-                    onClick = { isSignupMode = false },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (!isSignupMode) Color(0xFF10A37F) else Color.Transparent
+                // 로고 및 제목
+                Text(
+                    text = "늘품",
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF10A37F),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                
+                // 모드 전환 버튼
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF7F7F8)
                     ),
-                    shape = RoundedCornerShape(0.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        text = "로그인",
-                        color = if (!isSignupMode) Color.White else Color.Black
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = { isSignupMode = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (!isSignupMode) Color(0xFF10A37F) else Color.Transparent
+                            ),
+                            shape = RoundedCornerShape(0.dp)
+                        ) {
+                            Text(
+                                text = "로그인",
+                                color = if (!isSignupMode) Color.White else Color.Black
+                            )
+                        }
+                        
+                        Button(
+                            onClick = { isSignupMode = true },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isSignupMode) Color(0xFF10A37F) else Color.Transparent
+                            ),
+                            shape = RoundedCornerShape(0.dp)
+                        ) {
+                            Text(
+                                text = "회원가입",
+                                color = if (isSignupMode) Color.White else Color.Black
+                            )
+                        }
+                    }
                 }
                 
-                Button(
-                    onClick = { isSignupMode = true },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSignupMode) Color(0xFF10A37F) else Color.Transparent
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // 입력 폼
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
                     ),
-                    shape = RoundedCornerShape(0.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        text = "회원가입",
-                        color = if (isSignupMode) Color.White else Color.Black
-                    )
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // 입력 폼
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
             Column(
                 modifier = Modifier.padding(24.dp)
             ) {
@@ -702,6 +706,7 @@ fun LoginScreen(
             fontSize = 14.sp,
             textAlign = TextAlign.Center
         )
+        }
     }
     
     // 이용약관 스크린

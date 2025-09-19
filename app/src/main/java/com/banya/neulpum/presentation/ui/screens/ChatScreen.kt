@@ -44,6 +44,9 @@ import com.banya.neulpum.data.remote.SSEChatService
 import com.banya.neulpum.domain.entity.ChatMessage
 import com.banya.neulpum.presentation.ui.components.CameraComponent
 import com.banya.neulpum.presentation.viewmodel.ChatViewModel
+import com.banya.neulpum.utils.PermissionHelper
+import com.banya.neulpum.utils.rememberPermissionHelper
+import com.banya.neulpum.utils.rememberPermissionLauncher
 import com.banya.neulpum.domain.entity.ConversationWithMessages
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +69,8 @@ fun ChatScreen(
     apiKey: String = ""
 ) {
     val context = LocalContext.current
+    val permissionHelper = rememberPermissionHelper()
+    
     var messageText by remember { mutableStateOf("") }
     var chatMessages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var isListening by remember { mutableStateOf(false) }
@@ -77,6 +82,24 @@ fun ChatScreen(
     var currentStepDetail by remember { mutableStateOf<String?>(null) }
     var sseService by remember { mutableStateOf<SSEChatService?>(null) }
     var activeConversationId by remember { mutableStateOf<String?>(currentConversationId) }
+    
+    // 권한 관련 상태
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            permissionHelper.isPermissionGranted(PermissionHelper.CAMERA_PERMISSION)
+        )
+    }
+    var showCameraPermissionDialog by remember { mutableStateOf(false) }
+    
+    // 카메라 권한 요청 런처
+    val cameraPermissionLauncher = rememberPermissionLauncher { isGranted ->
+        hasCameraPermission = isGranted
+        if (isGranted) {
+            showCamera = true
+        } else {
+            showCameraPermissionDialog = true
+        }
+    }
     
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -178,11 +201,6 @@ fun ChatScreen(
     LaunchedEffect(Unit) {
         sseService = SSEChatService()
     }
-    
-    val hasCameraPermission = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.CAMERA
-    ) == PackageManager.PERMISSION_GRANTED
     
     val hasAudioPermission = ContextCompat.checkSelfPermission(
         context,
@@ -432,12 +450,8 @@ fun ChatScreen(
                                         if (hasCameraPermission) {
                                             showCamera = true
                                         } else {
-                                            val permissionMessage = ChatMessage(
-                                                id = System.currentTimeMillis().toString(),
-                                                content = "카메라 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
-                                                isUser = false
-                                            )
-                                            chatMessages = chatMessages + permissionMessage
+                                            // 카메라 권한 요청
+                                            cameraPermissionLauncher.launch(PermissionHelper.CAMERA_PERMISSION)
                                         }
                                     }
                                 )
@@ -530,6 +544,19 @@ fun ChatScreen(
                 }
             }
         }
+    }
+    
+    // 카메라 권한 다이얼로그 (권한이 거부되었을 때 설정으로 안내)
+    if (showCameraPermissionDialog) {
+        com.banya.neulpum.presentation.ui.components.CameraPermissionDialog(
+            onConfirm = {
+                showCameraPermissionDialog = false
+                permissionHelper.openAppSettings()
+            },
+            onDismiss = {
+                showCameraPermissionDialog = false
+            }
+        )
     }
 }
 

@@ -48,6 +48,7 @@ import com.banya.neulpum.presentation.ui.components.voice.VoiceMicButton
 import com.banya.neulpum.presentation.ui.components.voice.CircularParticleView
 import com.banya.neulpum.utils.PermissionHelper
 import com.banya.neulpum.utils.rememberPermissionHelper
+import com.banya.neulpum.utils.rememberPermissionLauncher
 import com.banya.neulpum.presentation.ui.components.MicrophonePermissionDialog
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlin.random.Random
@@ -80,6 +81,16 @@ fun VoiceChatScreen(
     }
     
     var showPermissionDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    
+    // 권한 요청 런처
+    val permissionLauncher = rememberPermissionLauncher { isGranted ->
+        hasMicrophonePermission = isGranted
+        if (!isGranted) {
+            // 권한이 거부되었을 때 설정 다이얼로그 표시
+            showSettingsDialog = true
+        }
+    }
     
     // 화면이 표시될 때마다 권한 상태를 다시 확인
     LaunchedEffect(Unit) {
@@ -471,8 +482,8 @@ fun VoiceChatScreen(
                             }
                         )
                     } else {
-                        // 마이크 권한이 없는 경우 권한 요청 다이얼로그 표시
-                        showPermissionDialog = true
+                        // 마이크 권한이 없는 경우 실제 권한 요청
+                        permissionLauncher.launch(PermissionHelper.RECORD_AUDIO_PERMISSION)
                     }
                 }
                 },
@@ -562,15 +573,15 @@ fun VoiceChatScreen(
         }
     }
     
-    // 마이크 권한 요청 다이얼로그
-    if (showPermissionDialog) {
+    // 마이크 권한 요청 다이얼로그 (권한이 거부되었을 때 설정으로 안내)
+    if (showSettingsDialog) {
         MicrophonePermissionDialog(
             onConfirm = {
-                showPermissionDialog = false
+                showSettingsDialog = false
                 permissionHelper.openAppSettings()
             },
             onDismiss = {
-                showPermissionDialog = false
+                showSettingsDialog = false
             }
         )
     }

@@ -52,18 +52,18 @@ class PermissionHelper(private val context: Context) {
 }
 
 @Composable
-fun rememberPermissionHelper(): PermissionHelper {
-    val context = LocalContext.current
-    return remember { PermissionHelper(context) }
-}
-
-@Composable
 fun rememberPermissionLauncher(
-    onResult: (Boolean) -> Unit
+    onPermissionResult: (Boolean) -> Unit
 ): androidx.activity.result.ActivityResultLauncher<String> {
     return rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        onResult(isGranted)
+        onPermissionResult(isGranted)
     }
+}
+
+@Composable
+fun rememberPermissionHelper(): PermissionHelper {
+    val context = LocalContext.current
+    return remember { PermissionHelper(context) }
 }

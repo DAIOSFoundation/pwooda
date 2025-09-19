@@ -33,6 +33,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import com.banya.neulpum.utils.PermissionHelper
 import com.banya.neulpum.utils.rememberPermissionHelper
+import com.banya.neulpum.utils.rememberPermissionLauncher
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -55,11 +56,14 @@ fun CameraComponent(
         )
     }
     
-    var showPermissionDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     
-    LaunchedEffect(Unit) {
-        if (!hasCameraPermission) {
-            showPermissionDialog = true
+    // 권한 요청 런처
+    val permissionLauncher = rememberPermissionLauncher { isGranted ->
+        hasCameraPermission = isGranted
+        if (!isGranted) {
+            // 권한이 거부되었을 때 설정 다이얼로그 표시
+            showSettingsDialog = true
         }
     }
     
@@ -71,19 +75,21 @@ fun CameraComponent(
         )
     } else {
         PermissionRequest(
-            onRequestPermission = { showPermissionDialog = true }
+            onRequestPermission = { 
+                permissionLauncher.launch(PermissionHelper.CAMERA_PERMISSION)
+            }
         )
     }
     
-    // 권한 요청 다이얼로그
-    if (showPermissionDialog) {
+    // 권한 요청 다이얼로그 (권한이 거부되었을 때 설정으로 안내)
+    if (showSettingsDialog) {
         CameraPermissionDialog(
             onConfirm = {
-                showPermissionDialog = false
+                showSettingsDialog = false
                 permissionHelper.openAppSettings()
             },
             onDismiss = {
-                showPermissionDialog = false
+                showSettingsDialog = false
                 onClose()
             }
         )
@@ -295,10 +301,10 @@ private fun PermissionRequest(
         Button(
             onClick = onRequestPermission,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF4285F4)
+                containerColor = Color(0xFF10A37F)
             )
         ) {
-            Text("권한 허용")
+            Text("권한 요청")
         }
     }
 }

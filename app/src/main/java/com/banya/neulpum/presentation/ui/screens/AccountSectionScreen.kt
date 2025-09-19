@@ -37,7 +37,7 @@ fun AccountSectionScreen(
         TopAppBar(
             title = {
                 Text(
-                    "계정",
+                    "계정 관리",
                     color = Color.Black,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -64,32 +64,7 @@ fun AccountSectionScreen(
                 .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
-            // 계정 관리 안내
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        "계정 관리",
-                        color = Color(0xFF10A37F),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        "계정과 관련된 모든 설정을 관리할 수 있습니다.\n계정 삭제는 되돌릴 수 없으니 신중하게 선택해주세요.",
-                        color = Color(0xFF10A37F),
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
+           
             
             // 계정 삭제 요청 카드
             Card(

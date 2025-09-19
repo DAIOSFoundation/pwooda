@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
@@ -49,7 +50,8 @@ fun SettingsScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
     onNavigateToOrganization: () -> Unit = {},
     onNavigateToOrganizationCreate: () -> Unit = {},
-    onNavigateToProfileEdit: () -> Unit = {}
+    onNavigateToProfileEdit: () -> Unit = {},
+    onNavigateToAccountSection: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val authRepository = remember { AuthRepositoryImpl(context) }
@@ -60,7 +62,6 @@ fun SettingsScreen(
     var currentSettings by remember { mutableStateOf<AppSettings?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showAccountDeletionRequest by remember { mutableStateOf(false) }
-    var showAccountSection by remember { mutableStateOf(false) }
     var showPrivacyPolicyScreen by remember { mutableStateOf(false) }
     var showTermsOfServiceScreen by remember { mutableStateOf(false) }
     
@@ -177,6 +178,7 @@ fun SettingsScreen(
                             showChevron = true,
                             onClick = { onNavigateToOrganization() }
                         )
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
                     }
                 }
             }
@@ -202,22 +204,11 @@ fun SettingsScreen(
                         SettingListRow(
                             title = "계정",
                             onClick = { 
-                                showAccountSection = true 
-                            }
+                                onNavigateToAccountSection()
+                            },
+                            showChevron = true
                         )
                         HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
-                        SettingListRow(
-                            title = "로그아웃",
-                            onClick = {
-                                authViewModel.logout()
-                                // 이동: 로그인 화면
-                                val intent = Intent(context, LoginActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(intent)
-                                // 현재 Activity 종료
-                                (context as? Activity)?.finish()
-                            }
-                        )
                     }
                 }
             }
@@ -280,6 +271,41 @@ fun SettingsScreen(
             }
         }
 
+        // 로그아웃 섹션 (최하단)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .widthIn(max = 480.dp)
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 10.dp)) {
+                        SettingListRow(
+                            title = "로그아웃",
+                            onClick = {
+                                authViewModel.logout()
+                                // 이동: 로그인 화면
+                                val intent = Intent(context, LoginActivity::class.java)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                                // 현재 Activity 종료
+                                (context as? Activity)?.finish()
+                            },
+                            centered = true
+                        )
+                    }
+                }
+            }
+        }
+
     }
     
     
@@ -322,23 +348,6 @@ fun SettingsScreen(
         )
     }
 
-    // 계정 섹션 화면
-    if (showAccountSection) {
-        BackHandler {
-            showAccountSection = false
-        }
-        AccountSectionScreen(
-            onBack = { showAccountSection = false },
-            onAccountDeletionRequest = { 
-                showAccountSection = false
-                showAccountDeletionRequest = true 
-            },
-            onDeleteAccount = { 
-                showAccountSection = false
-                showDeleteConfirm = true 
-            }
-        )
-    }
 
     // 개인정보처리방침 화면
     if (showPrivacyPolicyScreen) {

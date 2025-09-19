@@ -39,6 +39,7 @@ import com.banya.neulpum.presentation.ui.screens.SettingsScreen
 import com.banya.neulpum.presentation.ui.screens.VoiceChatScreen
 import com.banya.neulpum.presentation.ui.screens.OrganizationScreen
 import com.banya.neulpum.presentation.ui.screens.ProfileEditScreen
+import com.banya.neulpum.presentation.ui.screens.AccountSectionScreen
 import com.banya.neulpum.presentation.viewmodel.AuthViewModel
 import com.banya.neulpum.presentation.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
@@ -148,6 +149,7 @@ fun MainScreen() {
     var selectedScreen by remember { mutableStateOf("voice") }
     var showOrganizationScreen by remember { mutableStateOf(false) }
     var showProfileEditScreen by remember { mutableStateOf(false) }
+    var showAccountSectionScreen by remember { mutableStateOf(false) }
     var drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var scope = rememberCoroutineScope()
     
@@ -487,7 +489,8 @@ fun MainScreen() {
                     paddingValues = paddingValues,
                     onNavigateToOrganization = { showOrganizationScreen = true },
                     onNavigateToOrganizationCreate = { },
-                    onNavigateToProfileEdit = { showProfileEditScreen = true }
+                    onNavigateToProfileEdit = { showProfileEditScreen = true },
+                    onNavigateToAccountSection = { showAccountSectionScreen = true }
                 )
                 else -> androidx.compose.runtime.key(currentConversationId) {
                     ChatScreen(
@@ -532,6 +535,19 @@ fun MainScreen() {
             ProfileEditScreen(
                 onBack = { showProfileEditScreen = false },
                 authViewModel = authViewModel
+            )
+        }
+        
+        // 계정 관리 화면
+        if (showAccountSectionScreen) {
+            AccountSectionScreen(
+                onBack = { showAccountSectionScreen = false },
+                onAccountDeletionRequest = { 
+                    // 계정 삭제 요청 화면으로 이동하는 로직 추가 필요
+                },
+                onDeleteAccount = { 
+                    // 즉시 회원 탈퇴 로직 추가 필요
+                }
             )
         }
         

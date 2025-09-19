@@ -106,7 +106,6 @@ fun ChatScreen(
                             }
                         },
                         onFailure = { error ->
-                            println("Failed to load conversation: ${error.message}")
                             // 실패 시 새 채팅으로 초기화
                             chatMessages = emptyList()
                             messageText = ""
@@ -118,7 +117,6 @@ fun ChatScreen(
                         }
                     )
                 } catch (e: Exception) {
-                    println("Error loading conversation: ${e.message}")
                     // 에러 시 새 채팅으로 초기화
                     chatMessages = emptyList()
                     messageText = ""
@@ -613,22 +611,16 @@ private suspend fun sendMessage(
                     val bytes = stream.toByteArray()
                     
                     // Base64 인코딩 전 크기 확인
-                    println("Image size after compression: ${bytes.size} bytes")
                     if (bytes.size > 1024 * 1024) { // 1MB 초과 시 경고
-                        println("Warning: Image size is ${bytes.size} bytes, may cause connection issues")
                     }
                     
                     android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                 }
             )
             
-            println("ChatScreen - Flow created, starting collect")
-            
             flow.collect { event ->
-                println("ChatScreen - Received SSE event: $event")
                 when (event) {
                     is ChatSSEEvent.Step -> {
-                        println("SSE Step Event: ${event.stage} - ${event.detail}")
                         val newStep = WorkflowStep(
                             stage = event.stage,
                             detail = event.detail,
@@ -636,13 +628,11 @@ private suspend fun sendMessage(
                             result = event.result
                         )
                         val updatedSteps = currentSteps + newStep
-                        println("Updated steps count: ${updatedSteps.size}")
                         
                         // 서버의 실제 타이밍에 맞춰서 즉시 업데이트
                         onUpdate(newMessages, updatedSteps, true, event.tool, event.detail)
                     }
                     is ChatSSEEvent.Final -> {
-                        println("SSE Final Event: ${event.result}")
                         val aiMessage = ChatMessage(
                             id = (System.currentTimeMillis() + 1).toString(),
                             content = event.result,
@@ -673,14 +663,6 @@ private suspend fun sendMessage(
             }
         } catch (e: Exception) {
             val errorMessage = when {
-                e.message?.contains("192.168.0.3") == true -> {
-                    ChatMessage(
-                        id = (System.currentTimeMillis() + 1).toString(),
-                        content = "❌ 서버 연결 오류: 서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.",
-                        isUser = false,
-                        isTyping = true
-                    )
-                }
                 e.message?.contains("Connection refused") == true -> {
                     ChatMessage(
                         id = (System.currentTimeMillis() + 1).toString(),

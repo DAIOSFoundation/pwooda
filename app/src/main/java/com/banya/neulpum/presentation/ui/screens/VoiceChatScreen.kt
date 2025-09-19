@@ -262,8 +262,6 @@ fun VoiceChatScreen(
                 isWsConnecting = false
             }
             override fun onLog(stage: String, message: String) {
-                println("VoiceChatScreen: onLog received - Stage: $stage, Message: $message")
-                android.util.Log.d("VoiceChatScreen", "onLog received - Stage: $stage, Message: $message")
                 // 워크플로우 단계 업데이트 - 더 알아보기 쉽게
                 when (stage) {
                     "plan", "planner" -> {
@@ -297,8 +295,6 @@ fun VoiceChatScreen(
                         isProcessing = true
                     }
                 }
-                println("VoiceChatScreen: Updated workflow step: $currentWorkflowStep, isProcessing: $isProcessing")
-                android.util.Log.d("VoiceChatScreen", "Updated workflow step: $currentWorkflowStep, isProcessing: $isProcessing")
             }
             override fun onClose(code: Int, reason: String) {
                 isWsConnected = false

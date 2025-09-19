@@ -88,13 +88,9 @@ class VoiceWebSocketClient(
                             "log" -> {
                                 val stage = json.optString("stage", "")
                                 val msg = json.optString("message", "")
-                                println("VoiceWebSocketClient: Log received - Stage: $stage, Message: $msg")
-                                android.util.Log.d("VoiceWebSocketClient", "Log received - Stage: $stage, Message: $msg")
                                 listener.onLog(stage, msg)
                             }
                             "done" -> {
-                                println("VoiceWebSocketClient: Done event received")
-                                android.util.Log.d("VoiceWebSocketClient", "Done event received")
                                 listener.onDone()
                             }
                             "conversation_created" -> {

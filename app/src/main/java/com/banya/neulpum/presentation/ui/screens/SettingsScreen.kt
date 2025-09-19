@@ -272,7 +272,6 @@ fun SettingsScreen(
                             danger = true,
                             centered = true,
                             onClick = { 
-                                println("회원탈퇴 버튼 클릭됨")
                                 showDeleteConfirm = true 
                             }
                         )
@@ -284,20 +283,14 @@ fun SettingsScreen(
     
     
     // 회원 탈퇴 확인
-    println("showDeleteConfirm 상태: $showDeleteConfirm")
     if (showDeleteConfirm) {
-        println("DeleteAccountDialog 렌더링 중...")
         DeleteAccountDialog(
             onDismiss = { showDeleteConfirm = false },
             onConfirm = { password ->
-                println("onConfirm 호출됨, 비밀번호: '$password'")
                 scope.launch {
                     try {
-                        println("deleteAccount API 호출 시작...")
                         val result = authViewModel.deleteAccount(password)
-                        println("deleteAccount API 호출 완료, 결과: $result")
                         if (result.isSuccess) {
-                            println("회원탈퇴 성공")
                             showDeleteConfirm = false
                             // 로그인 화면으로 이동
                             authViewModel.logout()
@@ -307,11 +300,9 @@ fun SettingsScreen(
                             // 현재 Activity 종료
                             (context as? Activity)?.finish()
                         } else {
-                            println("회원탈퇴 실패: ${result.exceptionOrNull()?.message}")
                             // 에러 메시지 표시 (추가 구현 필요)
                         }
                     } catch (e: Exception) {
-                        println("회원탈퇴 예외 발생: ${e.message}")
                         // 에러 처리
                     }
                 }

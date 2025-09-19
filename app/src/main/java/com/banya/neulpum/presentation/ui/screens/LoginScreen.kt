@@ -659,18 +659,6 @@ fun LoginScreen(
                         
                         // 디버깅을 위한 로그
                         if (isSignupMode) {
-                            println("회원가입 버튼 활성화 조건:")
-                            println("  - isLoading: $isLoading")
-                            println("  - email.isNotEmpty(): ${email.isNotEmpty()}")
-                            println("  - password.isNotEmpty(): ${password.isNotEmpty()}")
-                            println("  - name.isNotEmpty(): ${name.isNotEmpty()}")
-                            println("  - confirmPassword.isNotEmpty(): ${confirmPassword.isNotEmpty()}")
-                            println("  - confirmPassword == password: ${confirmPassword == password}")
-                            println("  - agreeToTerms: $agreeToTerms")
-                            println("  - agreeToPrivacy: $agreeToPrivacy")
-                            println("  - emailAvailable == true: ${emailAvailable == true}")
-                            println("  - isEmailVerified: $isEmailVerified")
-                            println("  - 최종 활성화: $isEnabled")
                         }
                         
                         isEnabled

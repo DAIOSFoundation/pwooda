@@ -70,44 +70,30 @@ class SSEChatService {
         
         accessToken?.let {
             requestBuilder.addHeader("Authorization", "Bearer $it")
-            println("SSE Authorization header added: Bearer ${it.take(20)}...")
         } ?: run {
-            println("SSE No access token provided")
         }
         
         val request = requestBuilder.build()
         
-        println("SSE Headers: ${request.headers}")
-        println("SSE Message: $message")
-        
         try {
-            println("Starting SSE request...")
-            
             // okhttp-sse를 사용한 실시간 스트림 처리
             val sseClient = EventSources.createFactory(client)
             val eventSource = sseClient.newEventSource(request, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
-                    println("SSE Connection opened: ${response.code}")
                 }
                 
-                                        override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
-                            val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.getDefault()).format(java.util.Date())
-                            println("[$timestamp] SSE Event - ID: $id, Type: $type, Data: $data")
-
-                            try {
-                                val event = parseSSEEvent(data)
-                                println("[$timestamp] SSE Parsed Event: $event")
-                                trySend(event)
-                            } catch (e: Exception) {
-                                // JSON 파싱 에러는 조용히 넘어감
-                                trySend(ChatSSEEvent.Error("Parse error: ${e.message}"))
-                            }
-                        }
+                override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
+                    try {
+                        val event = parseSSEEvent(data)
+                        trySend(event)
+                    } catch (e: Exception) {
+                        // JSON 파싱 에러는 조용히 넘어감
+                        trySend(ChatSSEEvent.Error("Parse error: ${e.message}"))
+                    }
+                }
                 
                 override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                    println("SSE Connection failed: ${t?.message}")
                     val errorMessage = when {
-                        t?.message?.contains("192.168.0.3") == true -> "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요."
                         t?.message?.contains("Connection refused") == true -> "서버가 응답하지 않습니다. 서버 상태를 확인해주세요."
                         t?.message?.contains("timeout") == true -> "서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요."
                         t?.message?.contains("Network is unreachable") == true -> "인터넷 연결을 확인해주세요."
@@ -133,11 +119,7 @@ class SSEChatService {
             }
             
         } catch (e: Exception) {
-            println("SSE Request error: ${e.message}")
-            println("SSE Request error type: ${e.javaClass.simpleName}")
-            e.printStackTrace()
             val errorMessage = when {
-                e.message?.contains("192.168.0.3") == true -> "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요."
                 e.message?.contains("Connection refused") == true -> "서버가 응답하지 않습니다. 서버 상태를 확인해주세요."
                 e.message?.contains("timeout") == true -> "서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요."
                 e.message?.contains("Network is unreachable") == true -> "인터넷 연결을 확인해주세요."
@@ -150,8 +132,6 @@ class SSEChatService {
             close()
         }
         } catch (e: Exception) {
-            println("SSEChatService - Exception in callbackFlow: ${e.message}")
-            e.printStackTrace()
             trySend(ChatSSEEvent.Error("Flow error: ${e.message}"))
             close()
         }

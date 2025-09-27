@@ -9,28 +9,33 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = Color(0xFF4CAF50),  // Green80
+    secondary = Color(0xFF81C784),  // GreenGrey80
+    tertiary = Color(0xFFA5D6A7),  // LightGreen80
+    background = Color(0xFF1B5E20),  // 진한 녹색 배경
+    surface = Color(0xFF2E7D32),  // 녹색 서피스
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onBackground = Color.White,
+    onSurface = Color.White,
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = Color(0xFF2E7D32),  // NHGreen
+    secondary = Color(0xFF388E3C),  // GreenGrey40
+    tertiary = Color(0xFF1B5E20),  // DarkGreen40
+    background = Color(0xFFF1F8E9),  // 연한 녹색 배경
+    surface = Color(0xFFFFFFFF),  // 흰색 서피스
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = Color(0xFF1B5E20),
+    onSurface = Color(0xFF1B5E20),
 )
 
 @Composable
@@ -52,7 +57,6 @@ fun Theme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
         content = content
     )
 }

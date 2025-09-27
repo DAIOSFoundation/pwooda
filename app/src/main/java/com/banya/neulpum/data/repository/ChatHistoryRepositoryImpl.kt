@@ -47,7 +47,14 @@ class ChatHistoryRepositoryImpl(private val context: Context) : ChatHistoryRepos
             val accessToken = prefs.getString("access_token", null)
             val authorization = if (accessToken != null) "Bearer $accessToken" else null
             
-            val headerApiKey = apiKey.ifEmpty { null }
+            // 디버깅 로그 추가
+            println("ChatHistoryRepository - API Key: ${apiKey.take(10)}...")
+            println("ChatHistoryRepository - Access Token: ${accessToken?.take(20)}...")
+            println("ChatHistoryRepository - Authorization: ${authorization?.take(30)}...")
+            
+            // 채팅 히스토리는 사용자 기준으로만 조회 (기관키와 무관)
+            val headerApiKey = null  // 기관키 없이 요청
+            println("ChatHistoryRepository - Chat history query by user only (organization independent)")
             val response = chatHistoryApiService.getConversations(headerApiKey, authorization, limit)
             if (response.isSuccessful) {
                 val responseBody = response.body()
@@ -75,10 +82,16 @@ class ChatHistoryRepositoryImpl(private val context: Context) : ChatHistoryRepos
                         )
                     } else null
                 }
-                println("ChatHistoryRepository - Parsed conversations: ${conversations.size}")
                 Result.success(conversations)
             } else {
-                Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                val errorBody = response.errorBody()?.string()
+                // JWT 토큰 만료 시 자동 로그아웃 처리
+                if (response.code() == 401 && errorBody?.contains("TOKEN_EXPIRED") == true) {
+                    val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+                    prefs.edit().clear().apply()
+                }
+                
+                Result.failure(Exception("HTTP ${response.code()}: ${response.message()} - $errorBody"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -92,7 +105,8 @@ class ChatHistoryRepositoryImpl(private val context: Context) : ChatHistoryRepos
             val accessToken = prefs.getString("access_token", null)
             val authorization = if (accessToken != null) "Bearer $accessToken" else null
             
-            val response = chatHistoryApiService.getConversation(apiKey, authorization, conversationId)
+            // 채팅 히스토리는 사용자 기준으로만 조회 (기관키와 무관)
+            val response = chatHistoryApiService.getConversation(null, authorization, conversationId)
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 println("ChatHistoryRepository - getConversation API Response: $responseBody")

@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -17,7 +18,15 @@ fun MainScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1E1E1E))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF2E7D32),  // 농협 녹색
+                        Color(0xFF1B5E20),  // 진한 녹색
+                        Color(0xFF4CAF50)   // 밝은 녹색
+                    )
+                )
+            )
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -50,16 +59,16 @@ fun MainScreen() {
         
         // 기능 버튼들
         Button(
-            onClick = { /* TODO: 카메라 기능 */ },
+            onClick = { /* TODO: 검색 기능 */ },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
                 .padding(bottom = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
             shape = RoundedCornerShape(28.dp)
         ) {
             Text(
-                text = "카메라 시작",
+                text = "검색",
                 color = Color.White,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
@@ -72,7 +81,7 @@ fun MainScreen() {
                 .fillMaxWidth()
                 .height(56.dp)
                 .padding(bottom = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34A853)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
             shape = RoundedCornerShape(28.dp)
         ) {
             Text(
@@ -88,7 +97,7 @@ fun MainScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA4335)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B5E20)),
             shape = RoundedCornerShape(28.dp)
         ) {
             Text(

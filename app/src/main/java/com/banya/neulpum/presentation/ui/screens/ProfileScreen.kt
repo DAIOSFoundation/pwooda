@@ -28,7 +28,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    onNavigateToPrivacyPolicy: () -> Unit = {},
+    onNavigateToTermsOfService: () -> Unit = {}
+) {
     val context = LocalContext.current
     val authRepository = remember { AuthRepositoryImpl(context) }
     val authViewModel = remember { AuthViewModel(authRepository) }
@@ -46,12 +49,16 @@ fun ProfileScreen() {
         }
     }
     
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF1E1E1E))
-            .verticalScroll(rememberScrollState())
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
         // 상단 헤더
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -240,13 +247,44 @@ fun ProfileScreen() {
                     }
                 )
                 
-                // 로그아웃
-                ProfileActionRow(
-                    icon = Icons.Default.Logout,
-                    label = "로그아웃",
-                    onClick = { showLogoutDialog = true },
-                    textColor = Color(0xFFEA4335)
+            }
+        }
+        
+        // 법적 정보 카드
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF2D2D2D)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "법적 정보",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
+                
+                // 개인정보처리방침
+                ProfileActionRow(
+                    icon = Icons.Default.PrivacyTip,
+                    label = "개인정보처리방침",
+                    onClick = onNavigateToPrivacyPolicy
+                )
+                
+                // 이용약관
+                ProfileActionRow(
+                    icon = Icons.Default.Description,
+                    label = "이용약관",
+                    onClick = onNavigateToTermsOfService
+                )
+                
             }
         }
         
@@ -265,6 +303,31 @@ fun ProfileScreen() {
         }
         
         Spacer(modifier = Modifier.height(32.dp))
+        }
+        
+        // 하단 로그아웃 버튼
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 15.dp)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF2D2D2D)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                ProfileActionRow(
+                    icon = Icons.Default.Logout,
+                    label = "로그아웃",
+                    onClick = { showLogoutDialog = true },
+                    textColor = Color(0xFFEA4335)
+                )
+            }
+        }
     }
     
     // 로그아웃 확인 다이얼로그

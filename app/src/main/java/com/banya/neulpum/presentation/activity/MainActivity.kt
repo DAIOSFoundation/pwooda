@@ -454,7 +454,7 @@ fun MainScreen() {
                             scope.launch {
                                 val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
                                 val apiKey = prefs.getString("organization_api_key", "") ?: ""
-                                if (apiKey.isNotEmpty()) refreshRecent(apiKey) {}
+                                refreshRecent(apiKey) {} // 기관 없는 유저도 새로고침
                             }
                         },
                         onConversationCreated = { _ ->
@@ -481,7 +481,7 @@ fun MainScreen() {
                         scope.launch {
                             val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
                             val apiKey = prefs.getString("organization_api_key", "") ?: ""
-                            if (apiKey.isNotEmpty()) refreshRecent(apiKey) {}
+                            refreshRecent(apiKey) {} // 기관 없는 유저도 새로고침
                         }
                     }
                 )
@@ -502,7 +502,7 @@ fun MainScreen() {
                             scope.launch {
                                 val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
                                 val apiKey = prefs.getString("organization_api_key", "") ?: ""
-                                if (apiKey.isNotEmpty()) refreshRecent(apiKey) {}
+                                refreshRecent(apiKey) {} // 기관 없는 유저도 새로고침
                             }
                         },
                         onConversationCreated = { _ ->

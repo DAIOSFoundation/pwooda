@@ -108,7 +108,7 @@ fun ChatScreen(
     LaunchedEffect(currentConversationId) {
         if (currentConversationId != null && currentConversationId != "new") {
             // 기존 대화 로드
-            if (chatHistoryRepository != null && apiKey.isNotEmpty()) {
+            if (chatHistoryRepository != null) {
                 try {
                     isProcessing = true
                     chatHistoryRepository.getConversationWithMessages(apiKey, currentConversationId).fold(

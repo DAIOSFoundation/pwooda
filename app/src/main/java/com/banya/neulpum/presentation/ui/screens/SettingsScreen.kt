@@ -62,8 +62,6 @@ fun SettingsScreen(
     var currentSettings by remember { mutableStateOf<AppSettings?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showAccountDeletionRequest by remember { mutableStateOf(false) }
-    var showPrivacyPolicyScreen by remember { mutableStateOf(false) }
-    var showTermsOfServiceScreen by remember { mutableStateOf(false) }
     
     val currentUser = authViewModel.currentUser
     val scope = rememberCoroutineScope()
@@ -75,14 +73,18 @@ fun SettingsScreen(
         authViewModel.getMyProfile()
     }
     
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
             .padding(paddingValues)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         // 상단 프로필 카드 (단순하고 깔끔한 구성)
         // 상단 프로필 카드 + 간단한 아바타 배지
         Card(
@@ -247,7 +249,8 @@ fun SettingsScreen(
                         SettingListRow(
                             title = "개인정보처리방침",
                             onClick = {
-                                showPrivacyPolicyScreen = true
+                                val intent = Intent(context, com.banya.neulpum.presentation.activity.PrivacyPolicyActivity::class.java)
+                                context.startActivity(intent)
                             },
                             showChevron = true
                         )
@@ -255,7 +258,8 @@ fun SettingsScreen(
                         SettingListRow(
                             title = "이용약관",
                             onClick = {
-                                showTermsOfServiceScreen = true
+                                val intent = Intent(context, com.banya.neulpum.presentation.activity.TermsOfServiceActivity::class.java)
+                                context.startActivity(intent)
                             },
                             showChevron = true
                         )
@@ -271,41 +275,38 @@ fun SettingsScreen(
             }
         }
 
-        // 로그아웃 섹션 (최하단)
+        }
+        
+        // 하단 로그아웃 버튼 (고정)
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 15.dp)
         ) {
-            Box(
+            Card(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .widthIn(max = 480.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 10.dp)) {
-                        SettingListRow(
-                            title = "로그아웃",
-                            onClick = {
-                                authViewModel.logout()
-                                // 이동: 로그인 화면
-                                val intent = Intent(context, LoginActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(intent)
-                                // 현재 Activity 종료
-                                (context as? Activity)?.finish()
-                            },
-                            centered = true
-                        )
-                    }
+                Column(modifier = Modifier.padding(horizontal = 10.dp)) {
+                    SettingListRow(
+                        title = "로그아웃",
+                        onClick = {
+                            authViewModel.logout()
+                            // 이동: 로그인 화면
+                            val intent = Intent(context, LoginActivity::class.java)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                            // 현재 Activity 종료
+                            (context as? Activity)?.finish()
+                        },
+                        centered = true
+                    )
                 }
             }
         }
-
     }
     
     
@@ -349,25 +350,6 @@ fun SettingsScreen(
     }
 
 
-    // 개인정보처리방침 화면
-    if (showPrivacyPolicyScreen) {
-        BackHandler {
-            showPrivacyPolicyScreen = false
-        }
-        PrivacyPolicyScreen(
-            onBack = { showPrivacyPolicyScreen = false }
-        )
-    }
-    
-    // 이용약관 화면
-    if (showTermsOfServiceScreen) {
-        BackHandler {
-            showTermsOfServiceScreen = false
-        }
-        TermsOfServiceScreen(
-            onBack = { showTermsOfServiceScreen = false }
-        )
-    }
     
     
  

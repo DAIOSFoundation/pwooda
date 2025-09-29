@@ -105,8 +105,13 @@ class ChatHistoryRepositoryImpl(private val context: Context) : ChatHistoryRepos
             val accessToken = prefs.getString("access_token", null)
             val authorization = if (accessToken != null) "Bearer $accessToken" else null
             
+            println("ChatHistoryRepository - getConversationWithMessages called")
+            println("ChatHistoryRepository - conversationId: $conversationId")
+            println("ChatHistoryRepository - authorization: ${authorization?.take(30)}...")
+            
             // 채팅 히스토리는 사용자 기준으로만 조회 (기관키와 무관)
             val response = chatHistoryApiService.getConversation(null, authorization, conversationId)
+            println("ChatHistoryRepository - getConversation API Response Code: ${response.code()}")
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 println("ChatHistoryRepository - getConversation API Response: $responseBody")

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalConfiguration
 import com.banya.neulpum.domain.entity.User
 import com.banya.neulpum.presentation.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
@@ -34,7 +35,16 @@ fun ProfileEditScreen(
     onBack: () -> Unit,
     authViewModel: AuthViewModel
 ) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
     val currentUser = authViewModel.currentUser
+    
+    // 화면 크기에 따른 패딩 계산
+    val horizontalPadding = when {
+        screenWidth > 1200.dp -> 120.dp  // 큰 테블릿
+        screenWidth > 800.dp -> 80.dp    // 중간 테블릿
+        else -> 24.dp                    // 핸드폰
+    }
     
     var name by remember { mutableStateOf(currentUser?.name ?: "") }
     var currentPassword by remember { mutableStateOf("") }
@@ -98,7 +108,7 @@ fun ProfileEditScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(horizontal = horizontalPadding, vertical = 24.dp)
         ) {
             // 프로필 정보 섹션
             Card(
@@ -374,20 +384,6 @@ fun ProfileEditScreen(
                                 color = Color(0xFF10A37F)
                             )
                             Spacer(modifier = Modifier.weight(1f))
-                            TextButton(
-                                onClick = { 
-                                    showPasswordSection = false
-                                    currentPassword = ""
-                                    newPassword = ""
-                                    confirmPassword = ""
-                                }
-                            ) {
-                                Text(
-                                    "취소",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
-                                )
-                            }
                         }
                         
                         Text(

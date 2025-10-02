@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -12,10 +14,15 @@ android {
         applicationId = "com.banya.neulpum"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.0"
+        versionCode = 5
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Android 15 16KB 메모리 페이지 크기 지원
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     signingConfigs {
@@ -84,11 +91,11 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk15on:1.70")
     implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
     
-    // CameraX
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    // CameraX (최신 버전으로 업데이트)
+    implementation("androidx.camera:camera-core:1.4.0")
+    implementation("androidx.camera:camera-camera2:1.4.0")
+    implementation("androidx.camera:camera-lifecycle:1.4.0")
+    implementation("androidx.camera:camera-view:1.4.0")
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
@@ -117,8 +124,8 @@ dependencies {
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
     
-    // ML Kit Face Detection
-    implementation("com.google.mlkit:face-detection:16.1.6")
+    // ML Kit Face Detection 제거 (16KB 메모리 페이지 크기 미지원)
+    // implementation("com.google.mlkit:face-detection:16.1.6")
     
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:20.7.0")
@@ -135,7 +142,12 @@ dependencies {
     // HTTP client for Google TTS API
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     
-
+    // Hilt for dependency injection
+    implementation("com.google.dagger:hilt-android:2.48")
+    ksp("com.google.dagger:hilt-compiler:2.48")
+    
+    // ExifInterface for image metadata
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
     
     // Apple Sign-In (for Android) - 실제로는 Android에서 직접 지원하지 않음
     // implementation("com.apple.android.sdk:signin:1.0.0")

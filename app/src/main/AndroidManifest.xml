@@ -12,6 +12,9 @@
     
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
+    
+    <!-- Android 15 16KB 메모리 페이지 크기 지원 -->
+    <uses-feature android:name="android.hardware.ram.large" android:required="false" />
 
     <application
         android:name=".AppContextHolder"

@@ -29,6 +29,9 @@ class AuthViewModel(
     var errorMessage by mutableStateOf<String?>(null)
         private set
     
+    var signupSuccessMessage by mutableStateOf<String?>(null)
+        private set
+    
     init {
         try {
             checkLoginStatus()
@@ -86,12 +89,29 @@ class AuthViewModel(
                 val response = authRepository.signup(SignupRequest(email, password, name))
                 
                 if (response.success) {
-                    response.user?.let { user ->
-                        response.accessToken?.let { accessToken ->
-                            authRepository.saveUserSession(user, accessToken, user.refreshToken ?: "", null)
-                            currentUser = user
-                            authState = AuthState.Authenticated(user)
+                    // 회원가입 성공 시 자동 로그인 시도
+                    try {
+                        val loginResponse = authRepository.login(LoginRequest(email, password))
+                        if (loginResponse.success) {
+                            loginResponse.user?.let { user ->
+                                loginResponse.accessToken?.let { accessToken ->
+                                    authRepository.saveUserSession(user, accessToken, user.refreshToken ?: "", null)
+                                    currentUser = user
+                                    authState = AuthState.Authenticated(user)
+                                    
+                                    // 성공 메시지 설정
+                                    signupSuccessMessage = response.message ?: "회원가입이 완료되었습니다!"
+                                }
+                            }
+                        } else {
+                            // 자동 로그인 실패 시 회원가입만 성공으로 처리
+                            signupSuccessMessage = response.message ?: "회원가입이 완료되었습니다! 로그인해주세요."
+                            authState = AuthState.Unauthenticated
                         }
+                    } catch (e: Exception) {
+                        // 자동 로그인 실패 시 회원가입만 성공으로 처리
+                        signupSuccessMessage = response.message ?: "회원가입이 완료되었습니다! 로그인해주세요."
+                        authState = AuthState.Unauthenticated
                     }
                 } else {
                     errorMessage = response.message
@@ -184,6 +204,10 @@ class AuthViewModel(
     
     fun clearError() {
         errorMessage = null
+    }
+    
+    fun clearSignupSuccessMessage() {
+        signupSuccessMessage = null
     }
     
     suspend fun updateProfile(name: String?, currentPassword: String?, newPassword: String?): Result<User> {

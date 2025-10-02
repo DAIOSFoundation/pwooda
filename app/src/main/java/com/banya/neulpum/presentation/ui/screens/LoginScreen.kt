@@ -58,10 +58,12 @@ fun LoginScreen(
     var showVerificationCode by remember { mutableStateOf(false) }
     var showSnackbar by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf("") }
+    var isSuccessSnackbar by remember { mutableStateOf(false) }
     
     val authState = authViewModel.authState
     val isLoading = authViewModel.isLoading
     val errorMessage = authViewModel.errorMessage
+    val signupSuccessMessage = authViewModel.signupSuccessMessage
     val scope = rememberCoroutineScope()
     
     // 로그인 성공 시 콜백 호출
@@ -76,6 +78,22 @@ fun LoginScreen(
         if (errorMessage != null) {
             kotlinx.coroutines.delay(5000)
             authViewModel.clearError()
+        }
+    }
+    
+    // 회원가입 성공 시 처리 (자동 로그인 성공 시 성공 메시지 표시)
+    LaunchedEffect(signupSuccessMessage) {
+        if (signupSuccessMessage != null) {
+            // 성공 메시지를 스낵바로 표시
+            snackbarMessage = signupSuccessMessage!!
+            isSuccessSnackbar = true
+            showSnackbar = true
+            
+            // 2초 후 성공 메시지 제거 (자동 로그인 시 더 빠르게)
+            kotlinx.coroutines.delay(2000)
+            authViewModel.clearSignupSuccessMessage()
+            showSnackbar = false
+            isSuccessSnackbar = false
         }
     }
     
@@ -738,7 +756,9 @@ fun LoginScreen(
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFEA4335)),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isSuccessSnackbar) Color(0xFF10A37F) else Color(0xFFEA4335)
+                ),
                 shape = RoundedCornerShape(8.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
@@ -749,8 +769,8 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "에러",
+                        imageVector = if (isSuccessSnackbar) Icons.Default.Check else Icons.Default.Close,
+                        contentDescription = if (isSuccessSnackbar) "성공" else "에러",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )

@@ -250,6 +250,7 @@ class AuthRepositoryImpl(
         val userName = prefs.getString("user_name", null)
         val accessToken = prefs.getString("access_token", null)
         val refreshToken = prefs.getString("refresh_token", null)
+        val organizationApiKey = prefs.getString("organization_api_key", null)
         
         return if (userId != null && userEmail != null && userName != null) {
             User(
@@ -258,7 +259,8 @@ class AuthRepositoryImpl(
                 name = userName,
                 isLoggedIn = true,
                 accessToken = accessToken,
-                refreshToken = refreshToken
+                refreshToken = refreshToken,
+                organizationApiKey = organizationApiKey
             )
         } else null
     }

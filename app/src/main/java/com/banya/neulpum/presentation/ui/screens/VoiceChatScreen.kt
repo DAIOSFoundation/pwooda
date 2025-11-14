@@ -269,8 +269,10 @@ fun VoiceChatScreen(
                     }
                 }
             override fun onError(error: String) {
+                isWsConnected = false
                 isAwaitingResponse = false
                 isWsConnecting = false
+                android.util.Log.d("VoiceChatScreen", "WebSocket error: $error")
             }
             override fun onLog(stage: String, message: String) {
                 // 워크플로우 단계 업데이트 - 더 알아보기 쉽게
@@ -438,7 +440,18 @@ fun VoiceChatScreen(
                         // 소켓이 미연결 상태이면 우선 연결 시도
                         if (!isWsConnected && !isWsConnecting) {
                             isWsConnecting = true
-                            try { wsClient?.connect() } catch (_: Exception) { isWsConnecting = false }
+                            android.util.Log.d("VoiceChatScreen", "WebSocket not connected, attempting to reconnect...")
+                            try { 
+                                // 기존 웹소켓이 있다면 정리
+                                wsClient?.close()
+                                wsClient?.connect() 
+                            } catch (e: Exception) { 
+                                isWsConnecting = false
+                                isWsConnected = false
+                                android.util.Log.e("VoiceChatScreen", "WebSocket connection failed: ${e.message}")
+                            }
+                        } else if (isWsConnected) {
+                            android.util.Log.d("VoiceChatScreen", "WebSocket already connected")
                         }
                         // 새 녹음 시작 시 기존 최종 텍스트는 숨김
                         lastRecognizedText = null

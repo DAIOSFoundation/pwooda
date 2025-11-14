@@ -96,4 +96,35 @@ class OrganizationRemoteDataSource(
             Response.error(response.code(), ResponseBody.create(null, "API Error"))
         }
     }
+    
+    suspend fun getMemberPrompts(memberId: String, authToken: String? = null): Response<Map<String, String>> {
+        val response = apiService.getMemberPrompts(memberId, authToken)
+        return if (response.isSuccessful) {
+            val responseData = response.body()
+            if (responseData != null) {
+                val data = if (responseData.containsKey("data") && responseData["data"] != null) {
+                    responseData["data"] as Map<String, Any>
+                } else {
+                    responseData
+                }
+                val prompts = mapOf(
+                    "user_prompt" to (data["user_prompt"] as? String ?: ""),
+                    "assistant_prompt" to (data["assistant_prompt"] as? String ?: "")
+                )
+                Response.success(prompts)
+            } else {
+                Response.success(mapOf("user_prompt" to "", "assistant_prompt" to ""))
+            }
+        } else {
+            Response.error(response.code(), ResponseBody.create(null, "API Error"))
+        }
+    }
+    
+    suspend fun saveMemberPrompts(memberId: String, userPrompt: String, assistantPrompt: String, authToken: String? = null): Response<Map<String, Any>> {
+        val request = mapOf(
+            "user_prompt" to userPrompt,
+            "assistant_prompt" to assistantPrompt
+        )
+        return apiService.saveMemberPrompts(memberId, request, authToken)
+    }
 }

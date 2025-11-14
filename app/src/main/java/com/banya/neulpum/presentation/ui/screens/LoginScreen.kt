@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.banya.neulpum.presentation.viewmodel.AuthState
 import com.banya.neulpum.presentation.viewmodel.AuthViewModel
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +41,9 @@ fun LoginScreen(
     authViewModel: AuthViewModel,
     onLoginSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("login_prefs", Context.MODE_PRIVATE) }
+    
     var isSignupMode by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -47,6 +53,7 @@ fun LoginScreen(
     var showConfirmPassword by remember { mutableStateOf(false) }
     var agreeToTerms by remember { mutableStateOf(false) }
     var agreeToPrivacy by remember { mutableStateOf(false) }
+    var saveCredentials by remember { mutableStateOf(false) }
     var showTermsScreen by remember { mutableStateOf(false) }
     var showPrivacyScreen by remember { mutableStateOf(false) }
     var emailAvailable by remember { mutableStateOf<Boolean?>(null) }
@@ -66,9 +73,39 @@ fun LoginScreen(
     val signupSuccessMessage = authViewModel.signupSuccessMessage
     val scope = rememberCoroutineScope()
     
-    // 로그인 성공 시 콜백 호출
+    // 저장된 이메일/비밀번호 로드
+    LaunchedEffect(Unit) {
+        val savedEmail = prefs.getString("saved_email", null)
+        val savedPassword = prefs.getString("saved_password", null)
+        val shouldSave = prefs.getBoolean("save_credentials", false)
+        
+        if (savedEmail != null) {
+            email = savedEmail
+        }
+        if (savedPassword != null && shouldSave) {
+            password = savedPassword
+        }
+        saveCredentials = shouldSave
+    }
+    
+    // 로그인 성공 시 콜백 호출 및 자격증명 저장
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
+            // 자격증명 저장
+            if (saveCredentials) {
+                prefs.edit().apply {
+                    putString("saved_email", email)
+                    putString("saved_password", password)
+                    putBoolean("save_credentials", true)
+                }.apply()
+            } else {
+                // 저장하지 않으면 기존 저장된 정보 삭제
+                prefs.edit().apply {
+                    remove("saved_email")
+                    remove("saved_password")
+                    putBoolean("save_credentials", false)
+                }.apply()
+            }
             onLoginSuccess()
         }
     }
@@ -510,6 +547,30 @@ fun LoginScreen(
                         imeAction = ImeAction.Done
                     )
                 )
+                
+                // 로그인 모드일 때만 이메일/비밀번호 저장 체크박스
+                if (!isSignupMode) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = saveCredentials,
+                            onCheckedChange = { saveCredentials = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF10A37F),
+                                uncheckedColor = Color.Gray
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "이메일 / 비밀번호 저장",
+                            fontSize = 14.sp,
+                            color = Color.Black
+                        )
+                    }
+                }
                 
                 Spacer(modifier = Modifier.height(24.dp))
 

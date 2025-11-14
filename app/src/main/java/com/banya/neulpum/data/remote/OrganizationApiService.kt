@@ -34,4 +34,17 @@ interface OrganizationApiService {
         @Header("X-API-Key") apiKey: String? = null,
         @Header("Authorization") authorization: String? = null
     ): Response<Map<String, Any>>
+    
+    @GET("users/organization/members/{memberId}/prompts")
+    suspend fun getMemberPrompts(
+        @Path("memberId") memberId: String,
+        @Header("Authorization") authorization: String? = null
+    ): Response<Map<String, Any>>
+    
+    @PUT("users/organization/members/{memberId}/prompts")
+    suspend fun saveMemberPrompts(
+        @Path("memberId") memberId: String,
+        @Body request: Map<String, String>,
+        @Header("Authorization") authorization: String? = null
+    ): Response<Map<String, Any>>
 }

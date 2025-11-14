@@ -40,10 +40,13 @@ import com.banya.neulpum.presentation.ui.screens.VoiceChatScreen
 import com.banya.neulpum.presentation.ui.screens.OrganizationScreen
 import com.banya.neulpum.presentation.ui.screens.ProfileEditScreen
 import com.banya.neulpum.presentation.ui.screens.AccountSectionScreen
+import com.banya.neulpum.presentation.ui.screens.PromptScreen
+import com.banya.neulpum.presentation.ui.screens.VoiceChatSettingsScreen
 import com.banya.neulpum.presentation.viewmodel.AuthViewModel
 import com.banya.neulpum.presentation.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Box
@@ -56,16 +59,23 @@ import com.banya.neulpum.presentation.ui.components.PermissionDialog
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.banya.neulpum.utils.NetworkUtils
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 상태바 설정 - 검은색 배경에 흰색 글씨
+        // 상태바 설정 - 흰색 배경에 검은색 글씨
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-        windowInsetsController.isAppearanceLightStatusBars = false // 흰색 글씨
-        window.statusBarColor = android.graphics.Color.BLACK // 검은색 배경
+        windowInsetsController.isAppearanceLightStatusBars = true // 검은색 글씨
+        window.statusBarColor = android.graphics.Color.WHITE // 흰색 배경
         
         setContent {
             MainScreen()
@@ -146,10 +156,13 @@ fun DrawerChatItem(
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var selectedScreen by remember { mutableStateOf("voice") }
     var showOrganizationScreen by remember { mutableStateOf(false) }
     var showProfileEditScreen by remember { mutableStateOf(false) }
     var showAccountSectionScreen by remember { mutableStateOf(false) }
+    var showPromptScreen by remember { mutableStateOf(false) }
+    var showVoiceChatSettingsScreen by remember { mutableStateOf(false) }
     var drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var scope = rememberCoroutineScope()
     
@@ -180,15 +193,8 @@ fun MainScreen() {
     val currentUser = authViewModel.currentUser
     val isLoading = authViewModel.isLoading
     
-    // 앱 시작 시 로그인 상태 확인
-    LaunchedEffect(Unit) {
-        try {
-            authViewModel.checkLoginStatus()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            // 오류 발생 시에도 앱이 계속 실행되도록 함
-        }
-    }
+    // 네트워크 다이얼로그 표시 상태
+    var showNetworkDialog by remember { mutableStateOf(false) }
     
     suspend fun refreshRecent(apiKey: String, setLoading: (Boolean) -> Unit = {}) {
         setLoading(true)
@@ -203,7 +209,69 @@ fun MainScreen() {
             }
         )
     }
-
+    
+    // 앱이 포그라운드로 돌아올 때 처리
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 포그라운드로 돌아왔을 때
+                val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+                
+                // 네트워크 상태 확인
+                val isNetworkAvailable = NetworkUtils.isNetworkAvailable(context)
+                
+                // 네트워크 다이얼로그 플래그 확인 또는 네트워크가 없으면 직접 표시
+                val shouldShowDialog = prefs.getBoolean("show_network_dialog", false)
+                if (!isNetworkAvailable) {
+                    // 네트워크가 없으면 다이얼로그 표시
+                    if (shouldShowDialog || !showNetworkDialog) {
+                        showNetworkDialog = true
+                        prefs.edit().putBoolean("show_network_dialog", false).apply()
+                    }
+                } else {
+                    // 네트워크가 연결되어 있으면 다이얼로그 닫기
+                    if (showNetworkDialog) {
+                        showNetworkDialog = false
+                    }
+                    
+                    // 채팅 히스토리 새로고침
+                    if (currentUser != null) {
+                        val apiKey = prefs.getString("organization_api_key", "") ?: ""
+                        scope.launch {
+                            refreshRecent(apiKey) { isLoadingConversations = it }
+                        }
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    // 앱 시작 시 로그인 상태 확인 및 네트워크 다이얼로그 플래그 확인
+    LaunchedEffect(Unit) {
+        try {
+            authViewModel.checkLoginStatus()
+            
+            // 네트워크 다이얼로그 플래그 확인 (실제로 네트워크가 없을 때만 표시)
+            val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+            val shouldShowDialog = prefs.getBoolean("show_network_dialog", false)
+            if (shouldShowDialog) {
+                // 실제로 네트워크가 연결되어 있지 않을 때만 다이얼로그 표시
+                if (!NetworkUtils.isNetworkAvailable(context)) {
+                    showNetworkDialog = true
+                }
+                // 플래그는 항상 초기화 (다이얼로그 표시 여부와 관계없이)
+                prefs.edit().putBoolean("show_network_dialog", false).apply()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // 오류 발생 시에도 앱이 계속 실행되도록 함
+        }
+    }
+    
     // 로그인 후 채팅 히스토리 로드
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
@@ -228,6 +296,44 @@ fun MainScreen() {
             CircularProgressIndicator(color = Color(0xFF10A37F))
         }
         return
+    }
+    
+    // 네트워크가 다시 연결되었으면 다이얼로그 자동 닫기
+    LaunchedEffect(showNetworkDialog) {
+        if (showNetworkDialog && NetworkUtils.isNetworkAvailable(context)) {
+            kotlinx.coroutines.delay(100) // 약간의 지연 후 닫기
+            showNetworkDialog = false
+        }
+    }
+    
+    // 네트워크 연결 확인 다이얼로그 (실제로 네트워크가 없을 때만 표시)
+    if (showNetworkDialog && !NetworkUtils.isNetworkAvailable(context)) {
+        AlertDialog(
+            onDismissRequest = { showNetworkDialog = false },
+            title = {
+                Text(
+                    text = "인터넷 연결 확인",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("인터넷 연결을 확인해주세요.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showNetworkDialog = false
+                        // 네트워크 상태 다시 확인
+                        if (NetworkUtils.isNetworkAvailable(context)) {
+                            // 네트워크가 연결되었으면 앱 새로고침
+                            // 필요시 여기에 새로고침 로직 추가
+                        }
+                    }
+                ) {
+                    Text("확인", color = Color(0xFF10A37F))
+                }
+            }
+        )
     }
     
     ModalNavigationDrawer(
@@ -490,7 +596,9 @@ fun MainScreen() {
                     onNavigateToOrganization = { showOrganizationScreen = true },
                     onNavigateToOrganizationCreate = { },
                     onNavigateToProfileEdit = { showProfileEditScreen = true },
-                    onNavigateToAccountSection = { showAccountSectionScreen = true }
+                    onNavigateToAccountSection = { showAccountSectionScreen = true },
+                    onNavigateToPrompt = { showPromptScreen = true },
+                    onNavigateToVoiceChatSettings = { showVoiceChatSettingsScreen = true }
                 )
                 else -> androidx.compose.runtime.key(currentConversationId) {
                     ChatScreen(
@@ -548,6 +656,21 @@ fun MainScreen() {
                 onDeleteAccount = { 
                     // 즉시 회원 탈퇴 로직 추가 필요
                 }
+            )
+        }
+        
+        // 프롬프트 설정 화면
+        if (showPromptScreen) {
+            PromptScreen(
+                onBack = { showPromptScreen = false },
+                authViewModel = authViewModel
+            )
+        }
+        
+        // 음성채팅 설정 화면
+        if (showVoiceChatSettingsScreen) {
+            VoiceChatSettingsScreen(
+                onBack = { showVoiceChatSettingsScreen = false }
             )
         }
         

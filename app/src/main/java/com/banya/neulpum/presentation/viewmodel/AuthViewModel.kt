@@ -12,6 +12,8 @@ import com.banya.neulpum.domain.entity.User
 import com.banya.neulpum.domain.repository.AuthRepository
 import com.banya.neulpum.domain.repository.AccountDeletionStatus
 import kotlinx.coroutines.launch
+import android.content.Context
+import com.banya.neulpum.utils.NetworkUtils
 
 class AuthViewModel(
     private val authRepository: AuthRepository
@@ -129,6 +131,19 @@ class AuthViewModel(
     fun refreshToken() {
         viewModelScope.launch {
             try {
+                val context = com.banya.neulpum.AppContextHolder.appContext
+                val isNetworkAvailable = context != null && NetworkUtils.isNetworkAvailable(context)
+                
+                if (!isNetworkAvailable) {
+                    // 네트워크가 없으면 저장된 사용자 정보로 로그인 상태 유지
+                    val savedUser = authRepository.getCurrentUser()
+                    if (savedUser != null) {
+                        currentUser = savedUser
+                        authState = AuthState.Authenticated(savedUser)
+                    }
+                    return@launch
+                }
+                
                 val success = authRepository.refreshToken()
                 if (success) {
                     // 토큰 갱신 성공 시 프로필 정보 업데이트
@@ -138,12 +153,32 @@ class AuthViewModel(
                         authState = AuthState.Authenticated(updatedUser)
                     }
                 } else {
-                    // 토큰 갱신 실패 시 로그아웃
-                    logout()
+                    // 토큰 갱신 실패 시 네트워크 확인
+                    if (isNetworkAvailable) {
+                        // 네트워크는 있는데 토큰 갱신 실패 = 실제 인증 실패
+                        logout()
+                    } else {
+                        // 네트워크가 없으면 저장된 사용자 정보로 로그인 상태 유지
+                        val savedUser = authRepository.getCurrentUser()
+                        if (savedUser != null) {
+                            currentUser = savedUser
+                            authState = AuthState.Authenticated(savedUser)
+                        }
+                    }
                 }
             } catch (e: Exception) {
-                errorMessage = "토큰 갱신 중 오류가 발생했습니다: ${e.message}"
-                logout()
+                // 네트워크 예외인 경우 저장된 사용자 정보로 로그인 상태 유지
+                if (NetworkUtils.isNetworkException(e)) {
+                    val savedUser = authRepository.getCurrentUser()
+                    if (savedUser != null) {
+                        currentUser = savedUser
+                        authState = AuthState.Authenticated(savedUser)
+                    }
+                } else {
+                    // 다른 예외인 경우에만 로그아웃
+                    errorMessage = "토큰 갱신 중 오류가 발생했습니다: ${e.message}"
+                    logout()
+                }
             }
         }
     }
@@ -151,18 +186,47 @@ class AuthViewModel(
     fun getMyProfile() {
         viewModelScope.launch {
             try {
+                val context = com.banya.neulpum.AppContextHolder.appContext
+                val isNetworkAvailable = context != null && NetworkUtils.isNetworkAvailable(context)
+                
+                if (!isNetworkAvailable) {
+                    // 네트워크가 없으면 저장된 사용자 정보로 로그인 상태 유지
+                    val savedUser = authRepository.getCurrentUser()
+                    if (savedUser != null) {
+                        currentUser = savedUser
+                        authState = AuthState.Authenticated(savedUser)
+                    }
+                    return@launch
+                }
+                
                 val user = authRepository.getMyProfile()
                 if (user != null) {
                     currentUser = user
                     authState = AuthState.Authenticated(user)
                 } else {
-                    // 프로필 조회 실패 시 토큰 갱신 시도
-                    refreshToken()
+                    // 프로필 조회 실패 시 저장된 사용자 정보로 로그인 상태 유지
+                    val savedUser = authRepository.getCurrentUser()
+                    if (savedUser != null) {
+                        currentUser = savedUser
+                        authState = AuthState.Authenticated(savedUser)
+                    } else {
+                        // 저장된 사용자 정보도 없으면 토큰 갱신 시도
+                        refreshToken()
+                    }
                 }
             } catch (e: Exception) {
-                errorMessage = "프로필 조회 중 오류가 발생했습니다: ${e.message}"
-                // 프로필 조회 실패 시 토큰 갱신 시도
-                refreshToken()
+                // 네트워크 예외인 경우 저장된 사용자 정보로 로그인 상태 유지
+                if (NetworkUtils.isNetworkException(e)) {
+                    val savedUser = authRepository.getCurrentUser()
+                    if (savedUser != null) {
+                        currentUser = savedUser
+                        authState = AuthState.Authenticated(savedUser)
+                    }
+                } else {
+                    errorMessage = "프로필 조회 중 오류가 발생했습니다: ${e.message}"
+                    // 다른 예외인 경우에만 토큰 갱신 시도
+                    refreshToken()
+                }
             }
         }
     }
@@ -184,20 +248,64 @@ class AuthViewModel(
             try {
                 val isLoggedIn = authRepository.isLoggedIn()
                 if (isLoggedIn) {
-                    // 토큰이 있으면 /my API를 호출해서 최신 사용자 정보 가져오기
-                    val user = authRepository.getMyProfile()
-                    if (user != null) {
-                        currentUser = user
-                        authState = AuthState.Authenticated(user)
+                    // 네트워크 연결 확인
+                    val context = com.banya.neulpum.AppContextHolder.appContext
+                    val isNetworkAvailable = context != null && NetworkUtils.isNetworkAvailable(context)
+                    
+                    if (isNetworkAvailable) {
+                        // 네트워크가 있으면 /my API를 호출해서 최신 사용자 정보 가져오기
+                        try {
+                            val user = authRepository.getMyProfile()
+                            if (user != null) {
+                                currentUser = user
+                                authState = AuthState.Authenticated(user)
+                            } else {
+                                // /my API 호출 실패 시 저장된 사용자 정보로 로그인 상태 유지
+                                val savedUser = authRepository.getCurrentUser()
+                                if (savedUser != null) {
+                                    currentUser = savedUser
+                                    authState = AuthState.Authenticated(savedUser)
+                                } else {
+                                    authState = AuthState.Unauthenticated
+                                }
+                            }
+                        } catch (e: Exception) {
+                            // 네트워크 예외인 경우 저장된 사용자 정보로 로그인 상태 유지
+                            if (NetworkUtils.isNetworkException(e)) {
+                                val savedUser = authRepository.getCurrentUser()
+                                if (savedUser != null) {
+                                    currentUser = savedUser
+                                    authState = AuthState.Authenticated(savedUser)
+                                } else {
+                                    authState = AuthState.Unauthenticated
+                                }
+                            } else {
+                                // 다른 예외인 경우 로그아웃
+                                authState = AuthState.Unauthenticated
+                            }
+                        }
                     } else {
-                        // /my API 호출 실패 시 로그아웃
-                        authState = AuthState.Unauthenticated
+                        // 네트워크가 없으면 저장된 사용자 정보로 로그인 상태 유지
+                        val savedUser = authRepository.getCurrentUser()
+                        if (savedUser != null) {
+                            currentUser = savedUser
+                            authState = AuthState.Authenticated(savedUser)
+                        } else {
+                            authState = AuthState.Unauthenticated
+                        }
                     }
                 } else {
                     authState = AuthState.Unauthenticated
                 }
             } catch (e: Exception) {
-                authState = AuthState.Unauthenticated
+                // 예외 발생 시에도 저장된 사용자 정보 확인
+                val savedUser = authRepository.getCurrentUser()
+                if (savedUser != null) {
+                    currentUser = savedUser
+                    authState = AuthState.Authenticated(savedUser)
+                } else {
+                    authState = AuthState.Unauthenticated
+                }
             }
         }
     }

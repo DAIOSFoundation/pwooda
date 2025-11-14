@@ -51,7 +51,9 @@ fun SettingsScreen(
     onNavigateToOrganization: () -> Unit = {},
     onNavigateToOrganizationCreate: () -> Unit = {},
     onNavigateToProfileEdit: () -> Unit = {},
-    onNavigateToAccountSection: () -> Unit = {}
+    onNavigateToAccountSection: () -> Unit = {},
+    onNavigateToPrompt: () -> Unit = {},
+    onNavigateToVoiceChatSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val authRepository = remember { AuthRepositoryImpl(context) }
@@ -69,8 +71,12 @@ fun SettingsScreen(
     // 설정 로드
     LaunchedEffect(Unit) {
         currentSettings = settingsRepository.getSettings()
-        // 실제 로그인 사용자 정보 최신화
-        authViewModel.getMyProfile()
+        // 네트워크가 있을 때만 사용자 정보 최신화
+        val isNetworkAvailable = com.banya.neulpum.utils.NetworkUtils.isNetworkAvailable(context)
+        if (isNetworkAvailable) {
+            authViewModel.getMyProfile()
+        }
+        // 네트워크가 없어도 저장된 사용자 정보로 화면 표시
     }
     
     Box(
@@ -133,13 +139,6 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(20.dp),
                     modifier = Modifier.height(40.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "프로필 수정",
-                        tint = Color.White,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text("프로필 수정", color = Color.White)
                 }
                 
@@ -207,6 +206,22 @@ fun SettingsScreen(
                             title = "계정",
                             onClick = { 
                                 onNavigateToAccountSection()
+                            },
+                            showChevron = true
+                        )
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
+                        SettingListRow(
+                            title = "개인화",
+                            onClick = { 
+                                onNavigateToPrompt()
+                            },
+                            showChevron = true
+                        )
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
+                        SettingListRow(
+                            title = "음성채팅",
+                            onClick = { 
+                                onNavigateToVoiceChatSettings()
                             },
                             showChevron = true
                         )

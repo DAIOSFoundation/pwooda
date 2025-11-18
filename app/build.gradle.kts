@@ -14,14 +14,14 @@ android {
         applicationId = "com.banya.neulpum"
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.0.2"
+        versionCode = 7
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         // Android 15 16KB 메모리 페이지 크기 지원
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
         }
     }
 

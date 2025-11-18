@@ -15,6 +15,14 @@
     
     <!-- Android 15 16KB 메모리 페이지 크기 지원 -->
     <uses-feature android:name="android.hardware.ram.large" android:required="false" />
+    
+    <!-- 태블릿 지원 -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true" />
 
     <application
         android:name=".AppContextHolder"
@@ -32,7 +40,7 @@
             android:name=".presentation.activity.LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.Neulpum"
-            android:screenOrientation="portrait">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -43,7 +51,7 @@
             android:name=".presentation.activity.MainActivity"
             android:exported="false"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Neulpum">
         </activity>
         
@@ -51,7 +59,7 @@
             android:name=".presentation.activity.ChatActivity"
             android:exported="false"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Neulpum">
         </activity>
         
@@ -59,7 +67,7 @@
             android:name=".presentation.activity.PrivacyPolicyActivity"
             android:exported="false"
             android:label="개인정보처리방침"
-            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Neulpum">
         </activity>
         
@@ -67,7 +75,7 @@
             android:name=".presentation.activity.TermsOfServiceActivity"
             android:exported="false"
             android:label="이용약관"
-            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Neulpum">
         </activity>
     </application>

@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.focus.onFocusChanged
@@ -36,10 +37,19 @@ fun PromptScreen(
     authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
     val currentUser = authViewModel.currentUser
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val keyboardController = LocalSoftwareKeyboardController.current
+    
+    // 태블릿에서는 최대 너비 제한
+    val maxContentWidth = when {
+        screenWidth > 1200.dp -> 800.dp  // 큰 태블릿
+        screenWidth > 800.dp -> 700.dp    // 중간 태블릿
+        else -> screenWidth               // 핸드폰
+    }
     
     var userPrompt by remember { mutableStateOf("") }
     var assistantPrompt by remember { mutableStateOf("") }
@@ -163,6 +173,8 @@ fun PromptScreen(
             ) {
                 Column(
                     modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .widthIn(max = maxContentWidth)
                         .fillMaxWidth()
                         .verticalScroll(scrollState, enabled = true)
                         .padding(24.dp)
@@ -267,6 +279,7 @@ fun PromptScreen(
                     onClick = { savePrompts() },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .widthIn(max = maxContentWidth)
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
                         .padding(bottom = 15.dp)

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.VisualTransformation
@@ -56,10 +57,19 @@ fun SettingsScreen(
     onNavigateToVoiceChatSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
     val authRepository = remember { AuthRepositoryImpl(context) }
     val settingsRepository = remember { SettingsRepositoryImpl(context) }
     val authViewModel = remember { AuthViewModel(authRepository) }
     val orgRepository = remember { com.banya.neulpum.data.repository.OrganizationRepositoryImpl(context) }
+    
+    // 태블릿에서는 최대 너비 제한
+    val maxContentWidth = when {
+        screenWidth > 1200.dp -> 1100.dp  // 큰 태블릿
+        screenWidth > 800.dp -> 900.dp    // 중간 태블릿
+        else -> 480.dp                    // 핸드폰
+    }
     
     var currentSettings by remember { mutableStateOf<AppSettings?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -96,7 +106,7 @@ fun SettingsScreen(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 480.dp)
+                .widthIn(max = maxContentWidth)
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
@@ -154,7 +164,7 @@ fun SettingsScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .widthIn(max = 480.dp)
+                    .widthIn(max = maxContentWidth)
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -194,7 +204,7 @@ fun SettingsScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .widthIn(max = 480.dp)
+                    .widthIn(max = maxContentWidth)
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -202,14 +212,7 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 10.dp)) {
-                        SettingListRow(
-                            title = "계정",
-                            onClick = { 
-                                onNavigateToAccountSection()
-                            },
-                            showChevron = true
-                        )
-                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
+
                         SettingListRow(
                             title = "개인화",
                             onClick = { 
@@ -222,6 +225,14 @@ fun SettingsScreen(
                             title = "음성채팅",
                             onClick = { 
                                 onNavigateToVoiceChatSettings()
+                            },
+                            showChevron = true
+                        )
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
+                                                SettingListRow(
+                            title = "계정",
+                            onClick = { 
+                                onNavigateToAccountSection()
                             },
                             showChevron = true
                         )
@@ -240,7 +251,7 @@ fun SettingsScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .widthIn(max = 480.dp)
+                    .widthIn(max = maxContentWidth)
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

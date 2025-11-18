@@ -171,8 +171,7 @@ fun LoginScreen(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
                 .padding(top = 70.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -231,14 +230,18 @@ fun LoginScreen(
                 
                 // 입력 폼
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
             Column(
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 // 이메일 입력
                 OutlinedTextField(
@@ -720,71 +723,80 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 
-                // 로그인/회원가입 버튼
-                Button(
-                    onClick = {
-                        if (isSignupMode) {
-                            if (password.isNotEmpty() && password == confirmPassword && name.isNotEmpty()) {
-                                authViewModel.signup(email, password, name)
-                            }
-                        } else {
-                            authViewModel.login(email, password)
-                        }
-                    },
-                    enabled = run {
-                        val basicConditions = !isLoading && email.isNotEmpty() && password.isNotEmpty()
-                        val signupConditions = if (isSignupMode) {
-                            name.isNotEmpty() && confirmPassword.isNotEmpty() && confirmPassword == password && agreeToTerms && agreeToPrivacy && emailAvailable == true && isEmailVerified
-                        } else {
-                            true
-                        }
-                        val isEnabled = basicConditions && signupConditions
-                        
-                        // 디버깅을 위한 로그
-                        if (isSignupMode) {
-                        }
-                        
-                        isEnabled
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF10A37F)
-                    ),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    } else {
-                        Text(
-                            text = if (isSignupMode) "회원가입" else "로그인",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-                
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // 안내 텍스트
-        Text(
-            text = if (isSignupMode) {
-                "이미 계정이 있으신가요? 로그인 탭을 클릭하세요"
-            } else {
-                "계정이 없으신가요? 회원가입 탭을 클릭하세요"
-            },
-            color = Color.Gray,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center
-        )
+        // 하단 고정 영역: 로그인 버튼과 안내 텍스트
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 1.dp)
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 로그인/회원가입 버튼
+            Button(
+                onClick = {
+                    if (isSignupMode) {
+                        if (password.isNotEmpty() && password == confirmPassword && name.isNotEmpty()) {
+                            authViewModel.signup(email, password, name)
+                        }
+                    } else {
+                        authViewModel.login(email, password)
+                    }
+                },
+                enabled = run {
+                    val basicConditions = !isLoading && email.isNotEmpty() && password.isNotEmpty()
+                    val signupConditions = if (isSignupMode) {
+                        name.isNotEmpty() && confirmPassword.isNotEmpty() && confirmPassword == password && agreeToTerms && agreeToPrivacy && emailAvailable == true && isEmailVerified
+                    } else {
+                        true
+                    }
+                    val isEnabled = basicConditions && signupConditions
+                    
+                    // 디버깅을 위한 로그
+                    if (isSignupMode) {
+                    }
+                    
+                    isEnabled
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF10A37F)
+                ),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(
+                        text = if (isSignupMode) "회원가입" else "로그인",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // 안내 텍스트
+            Text(
+                text = if (isSignupMode) {
+                    "이미 계정이 있으신가요? 로그인 탭을 클릭하세요"
+                } else {
+                    "계정이 없으신가요? 회원가입 탭을 클릭하세요"
+                },
+                color = Color.Gray,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center
+            )
+        }
         }
     }
     

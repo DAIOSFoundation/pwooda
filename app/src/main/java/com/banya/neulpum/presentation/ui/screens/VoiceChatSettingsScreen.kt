@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,7 +29,16 @@ fun VoiceChatSettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
     val prefs = remember { context.getSharedPreferences("voice_chat_prefs", android.content.Context.MODE_PRIVATE) }
+    
+    // 태블릿에서는 최대 너비 제한
+    val maxContentWidth = when {
+        screenWidth > 1200.dp -> 800.dp  // 큰 태블릿
+        screenWidth > 800.dp -> 700.dp    // 중간 태블릿
+        else -> screenWidth               // 핸드폰
+    }
     
     // 초 단위로 관리 (불러올 때 밀리초를 초로 변환)
     var silenceDurationSeconds by remember { 
@@ -107,6 +117,8 @@ fun VoiceChatSettingsScreen(
         ) {
             Column(
                 modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .widthIn(max = maxContentWidth)
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
                     .padding(24.dp)
@@ -243,6 +255,7 @@ fun VoiceChatSettingsScreen(
                 onClick = { saveSettings() },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .widthIn(max = maxContentWidth)
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 15.dp)

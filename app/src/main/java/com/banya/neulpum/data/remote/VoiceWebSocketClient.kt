@@ -123,12 +123,20 @@ class VoiceWebSocketClient(
         })
     }
 
-    fun sendText(text: String, conversationId: String? = null) {
+    fun sendText(text: String, conversationId: String? = null, voiceName: String? = null) {
         try {
             val json = JSONObject()
             json.put("type", "text")
             json.put("text", text)
             if (!conversationId.isNullOrEmpty()) json.put("conversation_id", conversationId)
+            // 음성명이 있고 "leda"가 아니면 전송 (기존 버전 호환성을 위해 선택적)
+            if (!voiceName.isNullOrEmpty() && voiceName.lowercase() != "leda") {
+                // 첫 글자를 대문자로 변환
+                val capitalizedVoiceName = voiceName.lowercase().replaceFirstChar { 
+                    if (it.isLowerCase()) it.titlecase() else it.toString() 
+                }
+                json.put("voice_name", capitalizedVoiceName)
+            }
             val payload = json.toString()
             val sent = webSocket?.send(payload) ?: false
             if (!sent) {

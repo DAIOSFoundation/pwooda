@@ -272,6 +272,7 @@ fun SettingsScreen(
                     val versionName = pInfo?.versionName ?: "-"
 
                     Column(modifier = Modifier.padding(horizontal = 10.dp)) {
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f), thickness = 0.5.dp)
                         SettingListRow(
                             title = "개인정보처리방침",
                             onClick = {

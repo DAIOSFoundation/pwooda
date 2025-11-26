@@ -35,14 +35,17 @@ import com.banya.neulpum.data.remote.GoogleSpeechService
 import com.banya.neulpum.presentation.ui.components.EqualizerBars
 import com.banya.neulpum.presentation.ui.components.EqualizerCenterReactive
 import com.banya.neulpum.data.remote.VoiceWebSocketClient
-import androidx.media3.common.AudioAttributes
-import androidx.media3.common.C
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
+import android.media.AudioManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import com.banya.neulpum.presentation.ui.components.voice.VoiceCenterOverlay
 import com.banya.neulpum.presentation.ui.components.voice.VoiceMicButton
 import com.banya.neulpum.presentation.ui.components.voice.CircularParticleView
@@ -54,6 +57,39 @@ import androidx.compose.ui.viewinterop.AndroidView
 import kotlin.random.Random
 import android.media.audiofx.Visualizer
 import kotlin.math.sqrt
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+
+// PCM16LE를 WAV로 변환하는 함수
+fun pcm16leToWav(pcmData: ByteArray, sampleRate: Int = 24000, channels: Int = 1): ByteArray {
+    val dataSize = pcmData.size
+    val fileSize = 36 + dataSize // WAV 헤더(44 bytes) - 8 bytes + dataSize
+    
+    val wav = ByteArray(44 + dataSize)
+    val buffer = ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN)
+    
+    // RIFF 헤더
+    buffer.put("RIFF".toByteArray())
+    buffer.putInt(fileSize)
+    buffer.put("WAVE".toByteArray())
+    
+    // fmt 청크
+    buffer.put("fmt ".toByteArray())
+    buffer.putInt(16) // fmt 청크 크기
+    buffer.putShort(1.toShort()) // 오디오 포맷 (1 = PCM)
+    buffer.putShort(channels.toShort()) // 채널 수
+    buffer.putInt(sampleRate) // 샘플 레이트
+    buffer.putInt(sampleRate * channels * 2) // 바이트 레이트
+    buffer.putShort((channels * 2).toShort()) // 블록 정렬
+    buffer.putShort(16.toShort()) // 비트 깊이
+    
+    // data 청크
+    buffer.put("data".toByteArray())
+    buffer.putInt(dataSize) // 데이터 크기
+    buffer.put(pcmData) // PCM 데이터
+    
+    return wav
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +136,11 @@ fun VoiceChatScreen(
     
     var wsClient by remember { mutableStateOf<VoiceWebSocketClient?>(null) }
     var isWsConnected by remember { mutableStateOf(false) }
-    var player by remember { mutableStateOf<ExoPlayer?>(null) }
+    
+    // AudioTrack 사용 (스트리밍 재생)
+    var audioTrack by remember { mutableStateOf<AudioTrack?>(null) }
+    val audioChunkChannel = remember { Channel<ByteArray>(capacity = Channel.UNLIMITED) }
+    
     var isPlaying by remember { mutableStateOf(false) }
     var isAwaitingResponse by remember { mutableStateOf(false) }
     var audioLevel by remember { mutableStateOf(0f) }
@@ -112,9 +152,12 @@ fun VoiceChatScreen(
     var isWsConnecting by remember { mutableStateOf(false) }
     val mainHandler = remember { androidx.core.os.HandlerCompat.createAsync(android.os.Looper.getMainLooper()) }
     var lastRecognizedText by remember { mutableStateOf<String?>(null) }
+    var playbackSessionId by remember { mutableStateOf(0) }
     // 음성 채팅도 일반 채팅과 동일하게 conversationId 사용
     var currentConversationId by remember { mutableStateOf(conversationId) }
     
+    // SharedPreferences 참조 (전역으로 사용)
+    val voiceSettingsPrefs = remember { context.getSharedPreferences("voice_settings", Context.MODE_PRIVATE) }
     
     // 녹음 시간 업데이트
     LaunchedEffect(isRecording) {
@@ -131,45 +174,62 @@ fun VoiceChatScreen(
     // 음성 인식 서비스 및 WebSocket 초기화
     LaunchedEffect(Unit) {
         speechService = GoogleSpeechService(context, "YOUR_GOOGLE_API_KEY")
+        
+        // 오디오 볼륨 확인 및 설정
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        audioManager?.let { am ->
+            val currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val maxVolume = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            android.util.Log.d("VoiceChatScreen", "Current media volume: $currentVolume/$maxVolume")
+            if (currentVolume == 0) {
+                android.util.Log.w("VoiceChatScreen", "Media volume is 0! User needs to turn up volume.")
+            }
+        }
+        
         // WebSocket 연결 설정
         val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val selectedVoiceName = voiceSettingsPrefs.getString("selected_voice_name", "leda") ?: "leda"
         val access = prefs.getString("access_token", null)
         val orgKey = prefs.getString("organization_api_key", null)
         val base = com.banya.neulpum.di.AppConfig.BASE_HOST
         val wsScheme = if (base.startsWith("https")) "wss" else "ws"
         val wsUrl = base.replaceFirst(Regex("^https?"), wsScheme) + "/ws/voice"
         // mainHandler 및 debugToast는 Composable 스코프에서 remember로 공유됨
-        player = ExoPlayer.Builder(context).build().apply {
-            val attrs = AudioAttributes.Builder()
-                .setUsage(C.USAGE_MEDIA)
-                .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
-                .build()
-            setAudioAttributes(attrs, true)
-            volume = 1f
-            addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED) {
-                        mainHandler.post {
-                            isPlaying = false
-                            audioLevel = 0f
-                            try { visualizer?.release() } catch (_: Exception) {}
-                            visualizer = null
-                        }
-                    }
-                }
-                override fun onPlayerError(error: PlaybackException) {
-                    mainHandler.post {
-                        isPlaying = false
-                        audioLevel = 0f
-                        try { visualizer?.release() } catch (_: Exception) {}
-                        visualizer = null
-                    }
-                }
-                override fun onIsPlayingChanged(isPlayingNow: Boolean) {
-                    mainHandler.post { isPlaying = isPlayingNow }
-                }
-            })
+        
+        // AudioTrack 초기화 - 버퍼를 충분히 크게 설정하여 끊김 방지
+        val sampleRate = 24000
+        val channelConfig = AudioFormat.CHANNEL_OUT_MONO
+        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+        val minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+        // 최적 버퍼: minBufferSize의 4배 (안정적인 스트리밍을 위한 충분한 버퍼)
+        val bufferSize = minBufferSize * 4
+        
+        audioTrack = AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(audioFormat)
+                    .setSampleRate(sampleRate)
+                    .setChannelMask(channelConfig)
+                    .build()
+            )
+            .setBufferSizeInBytes(bufferSize)
+            .setTransferMode(AudioTrack.MODE_STREAM)
+            .build()
+            
+        // 볼륨 최대로 설정
+        try {
+            audioTrack?.setVolume(1.0f)
+            android.util.Log.d("VoiceChatScreen", "AudioTrack initialized: sampleRate=$sampleRate, bufferSize=$bufferSize, state=${audioTrack?.state}")
+        } catch (e: Exception) {
+            android.util.Log.e("VoiceChatScreen", "Failed to set volume", e)
         }
+            
         wsClient = VoiceWebSocketClient(wsUrl, access, orgKey, object: VoiceWebSocketClient.Listener {
             override fun onOpen() {
                 isWsConnected = true
@@ -177,77 +237,49 @@ fun VoiceChatScreen(
                 // 연결 지연 시 보낸 텍스트를 즉시 전송
                 val p = pendingText
                 if (!p.isNullOrBlank()) {
-                    wsClient?.sendText(p, currentConversationId) // 기존 대화 사용 (일반 채팅과 동일)
+                    val voiceName = voiceSettingsPrefs.getString("selected_voice_name", "leda") ?: "leda"
+                    wsClient?.sendText(p, currentConversationId, voiceName) // 기존 대화 사용 (일반 채팅과 동일)
                     pendingText = null
                 }
                 
             }
-            override fun onTtsChunk(bytes: ByteArray, format: String?) {
-                // 기존 방식 (호환성을 위해 유지) - 버퍼링 없이 즉시 재생
-                GlobalScope.launch {
-                    try {
-                        lastAudioFormat = format
-                        
-                        if (bytes.isNotEmpty()) {
-                            val ext = if (format == "wav") ".wav" else ".mp3"
-                            val cache = java.io.File.createTempFile("tts_", ext, context.cacheDir)
-                            cache.writeBytes(bytes)
-                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(cache))
-                            mainHandler.post {
-                                player?.stop()
-                                player?.clearMediaItems()
-                                player?.setMediaItem(mediaItem)
-                                player?.prepare()
-                                player?.play()
-                                isPlaying = true
-                                isAwaitingResponse = false
-                                doneReceived = true
-                                fallbackScheduled = false
-                            }
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
             override fun onTtsChunkStream(bytes: ByteArray, format: String?, chunkIndex: Int, isFinal: Boolean) {
-                // 스트리밍 오디오 청크 처리 - 즉시 재생
-                GlobalScope.launch {
-                    try {
-                        lastAudioFormat = format
-                        
-                        if (bytes.isNotEmpty()) {
-                            val ext = if (format == "wav") ".wav" else ".mp3"
-                            val tempFile = java.io.File.createTempFile("tts_stream_${chunkIndex}_", ext, context.cacheDir)
-                            tempFile.writeBytes(bytes)
-                            val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(tempFile))
-                            
-                            mainHandler.post {
-                                if (chunkIndex == 0) {
-                                    // 첫 청크는 즉시 재생 시작
-                                    player?.stop()
-                                    player?.clearMediaItems()
-                                    player?.setMediaItem(mediaItem)
-                                    player?.prepare()
-                                    player?.play()
-                                    isPlaying = true
-                                    isAwaitingResponse = false
-                                } else {
-                                    // 후속 청크는 큐에 추가
-                                    player?.addMediaItem(mediaItem)
-                                }
-                                
-                                // 최종 청크인 경우 상태 정리
-                                if (isFinal) {
-                                    doneReceived = true
-                                    fallbackScheduled = false
-                                    isAwaitingResponse = false
-                                }
-                            }
+                if (bytes.isNotEmpty()) {
+                    // 첫 청크를 받으면 재생 세션 시작
+                    if (chunkIndex == 0) {
+                        mainHandler.post {
+                            playbackSessionId++
+                            android.util.Log.d("VoiceChatScreen", "New playback session started: #$playbackSessionId")
                         }
-                        
-                    } catch (e: Exception) {
-                        println("VoiceChatScreen: Error in onTtsChunkStream: $e")
+                    }
+                    
+                    val enqueueResult = audioChunkChannel.trySend(bytes.copyOf())
+                    if (enqueueResult.isFailure) {
+                        android.util.Log.w(
+                            "VoiceChatScreen",
+                            "Audio chunk enqueue failed: ${enqueueResult.exceptionOrNull()?.message}"
+                        )
+                    } else {
+                        mainHandler.post {
+                            isAwaitingResponse = false
+                        }
                     }
                 }
+                
+                if (isFinal) {
+                    // 빈 배열을 종료 신호로 전송
+                    audioChunkChannel.trySend(ByteArray(0))
+                    mainHandler.post {
+                        doneReceived = true
+                        fallbackScheduled = false
+                        isAwaitingResponse = false
+                    }
+                }
+            }
+            
+            override fun onTtsChunk(bytes: ByteArray, format: String?) {
+                // 레거시 지원 (한 번에 오는 경우)
+                onTtsChunkStream(bytes, format, 0, true)
             }
                 override fun onDone() {
                     println("VoiceChatScreen: onDone called")
@@ -323,10 +355,198 @@ fun VoiceChatScreen(
         // 연결은 즉시 하지 않음. 마이크 버튼을 눌렀을 때 필요 시 연결.
     }
 
+    LaunchedEffect(audioTrack, playbackSessionId) {
+        val track = audioTrack ?: return@LaunchedEffect
+        if (playbackSessionId == 0) return@LaunchedEffect // 초기 상태에서는 실행하지 않음
+        
+        android.util.Log.d("VoiceChatScreen", "Starting playback session #$playbackSessionId")
+        withContext(Dispatchers.IO) {
+            try {
+                var isFirstChunk = true
+                val preBufferList = mutableListOf<ByteArray>()
+                var totalBufferedBytes = 0
+                val preBufferThreshold = 30720 // 640ms = 80ms × 8개 (24000Hz * 2bytes * 0.64s)
+                
+                // 청크 안정화: 80ms 단위로 모아서 write (서버에서 80ms로 전송)
+                val chunkAccumulator = mutableListOf<ByteArray>()
+                var accumulatedBytes = 0
+                val chunkWriteThreshold = 3840 // 80ms (24000Hz * 2bytes * 0.08s)
+                
+                for (chunk in audioChunkChannel) {
+                    // 빈 배열이면 종료 신호
+                    if (chunk.isEmpty()) {
+                        android.util.Log.d("VoiceChatScreen", "Received end-of-stream signal")
+                        
+                        // Pre-buffer에 남은 데이터가 있으면 재생
+                        if (preBufferList.isNotEmpty()) {
+                            if (track.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                                track.play()
+                                mainHandler.post {
+                                    isPlaying = true
+                                    isAwaitingResponse = false
+                                }
+                            }
+                            for (buffered in preBufferList) {
+                                track.write(buffered, 0, buffered.size, AudioTrack.WRITE_BLOCKING)
+                            }
+                        }
+                        
+                        // Accumulator에 남은 청크도 write
+                        if (chunkAccumulator.isNotEmpty()) {
+                            val mergedBuffer = ByteArray(accumulatedBytes)
+                            var mergedOffset = 0
+                            for (accChunk in chunkAccumulator) {
+                                System.arraycopy(accChunk, 0, mergedBuffer, mergedOffset, accChunk.size)
+                                mergedOffset += accChunk.size
+                            }
+                            track.write(mergedBuffer, 0, mergedBuffer.size, AudioTrack.WRITE_BLOCKING)
+                        }
+                        
+                        break
+                    }
+                    
+                    // AudioTrack 상태 확인
+                    val state = try { track.state } catch (_: Exception) { AudioTrack.STATE_UNINITIALIZED }
+                    if (state != AudioTrack.STATE_INITIALIZED) {
+                        android.util.Log.w("VoiceChatScreen", "AudioTrack not initialized, stopping playback")
+                        break
+                    }
+                    
+                    // 초기 버퍼링: 첫 청크들을 모아서 한번에 재생 시작
+                    if (isFirstChunk) {
+                        preBufferList.add(chunk)
+                        totalBufferedBytes += chunk.size
+                        
+                        if (totalBufferedBytes >= preBufferThreshold) {
+                            android.util.Log.d("VoiceChatScreen", "Pre-buffering complete ($totalBufferedBytes bytes)")
+                            isFirstChunk = false
+                            
+                            // 먼저 버퍼링된 데이터를 모두 AudioTrack에 쓰기
+                            var totalWritten = 0
+                            for (buffered in preBufferList) {
+                                var offset = 0
+                                while (offset < buffered.size) {
+                                    val written = try {
+                                        track.write(buffered, offset, buffered.size - offset, AudioTrack.WRITE_BLOCKING)
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("VoiceChatScreen", "Write failed", e)
+                                        -1
+                                    }
+                                    if (written <= 0) {
+                                        android.util.Log.e("VoiceChatScreen", "Write returned $written, stopping")
+                                        break
+                                    }
+                                    offset += written
+                                    totalWritten += written
+                                }
+                            }
+                            android.util.Log.d("VoiceChatScreen", "Pre-buffer written: $totalWritten bytes from ${preBufferList.size} chunks")
+                            preBufferList.clear()
+                            
+                            // 데이터가 충분히 쓰여진 후에 재생 시작
+                            try {
+                                track.play()
+                                android.util.Log.d("VoiceChatScreen", "Playback started after pre-buffering")
+                                mainHandler.post {
+                                    isPlaying = true
+                                    isAwaitingResponse = false
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("VoiceChatScreen", "Failed to start playback", e)
+                                break
+                            }
+                        }
+                        continue
+                    }
+                    
+                    // 정상 재생 중: 청크를 모아서 write (20~40ms 분량)
+                    if (track.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                        try {
+                            track.play()
+                            android.util.Log.d("VoiceChatScreen", "Resuming playback")
+                            mainHandler.post {
+                                isPlaying = true
+                                isAwaitingResponse = false
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("VoiceChatScreen", "Failed to start playback", e)
+                            break
+                        }
+                    }
+                    
+                    // 청크를 accumulator에 추가
+                    chunkAccumulator.add(chunk)
+                    accumulatedBytes += chunk.size
+                    
+                    // 40ms 분량 이상 모였으면 write
+                    if (accumulatedBytes >= chunkWriteThreshold) {
+                        // 모든 청크를 합쳐서 하나의 버퍼로 만들기
+                        val mergedBuffer = ByteArray(accumulatedBytes)
+                        var mergedOffset = 0
+                        for (accChunk in chunkAccumulator) {
+                            System.arraycopy(accChunk, 0, mergedBuffer, mergedOffset, accChunk.size)
+                            mergedOffset += accChunk.size
+                        }
+                        
+                        // write
+                        var offset = 0
+                        while (offset < mergedBuffer.size) {
+                            val written = try {
+                                track.write(mergedBuffer, offset, mergedBuffer.size - offset, AudioTrack.WRITE_BLOCKING)
+                            } catch (e: Exception) {
+                                android.util.Log.e("VoiceChatScreen", "Write failed", e)
+                                -1
+                            }
+                            if (written <= 0) {
+                                android.util.Log.e("VoiceChatScreen", "Write returned $written at offset $offset/${mergedBuffer.size}")
+                                break
+                            }
+                            offset += written
+                        }
+                        
+                        // 초기화
+                        chunkAccumulator.clear()
+                        accumulatedBytes = 0
+                    }
+                }
+                
+                // 재생 완료 후 AudioTrack 버퍼가 비워질 때까지 대기
+                android.util.Log.d("VoiceChatScreen", "Waiting for playback to finish...")
+                try {
+                    // 버퍼에 남은 데이터가 재생될 시간 확보 (최대 1초)
+                    var waitCount = 0
+                    while (track.playState == AudioTrack.PLAYSTATE_PLAYING && waitCount < 10) {
+                        delay(100)
+                        waitCount++
+                    }
+                } catch (_: Exception) {}
+                
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("VoiceChatScreen", "Audio playback loop failed", e)
+            } finally {
+                android.util.Log.d("VoiceChatScreen", "Playback finished, stopping AudioTrack")
+                try {
+                    track.pause()
+                    track.flush()
+                } catch (_: Exception) {}
+                mainHandler.post {
+                    isPlaying = false
+                    audioLevel = 0f
+                }
+            }
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
+            audioChunkChannel.close()
             try { wsClient?.close() } catch (_: Exception) {}
-            try { player?.release() } catch (_: Exception) {}
+            try { 
+                audioTrack?.stop()
+                audioTrack?.release() 
+            } catch (_: Exception) {}
         }
     }
     
@@ -471,18 +691,23 @@ fun VoiceChatScreen(
                                 lastRecognizedText = text
                                 if (text.isNotEmpty()) {
                                     // 새 요청 시작 시 이전 재생 상태 완전 초기화
-                                    try { player?.stop() } catch (_: Exception) {}
-                                    try { player?.clearMediaItems() } catch (_: Exception) {}
+                                    try { 
+                                        audioTrack?.pause()
+                                        audioTrack?.flush()
+                                    } catch (_: Exception) {}
+                                    while (audioChunkChannel.tryReceive().isSuccess) { /* drop pending audio */ }
                                     isPlaying = false
                                     audioLevel = 0f
                                     try { visualizer?.release() } catch (_: Exception) {}
                                     visualizer = null
+                                    
                                     // 상태 변수들 완전 초기화
                                     doneReceived = false
                                     fallbackScheduled = false
                                     isAwaitingResponse = true
                                     if (isWsConnected) {
-                                        wsClient?.sendText(text, currentConversationId) // 기존 대화 사용 (일반 채팅과 동일)
+                                        val voiceName = voiceSettingsPrefs.getString("selected_voice_name", "leda") ?: "leda"
+                                        wsClient?.sendText(text, currentConversationId, voiceName) // 기존 대화 사용 (일반 채팅과 동일)
                                     } else {
                                         pendingText = text
                                     }
@@ -527,16 +752,17 @@ fun VoiceChatScreen(
         }
     }
 
-    // 오디오 레벨 시각화: 최적화된 Visualizer 사용
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
-            // 세션 ID 대기 시간 단축
-            repeat(5) {
-                if (player?.audioSessionId != C.AUDIO_SESSION_ID_UNSET) return@repeat
-                delay(20)
+    // 오디오 레벨 시각화: 최적화된 Visualizer 사용 (AudioTrack)
+    LaunchedEffect(isPlaying, audioTrack) {
+        if (isPlaying && audioTrack != null) {
+            // AudioTrack 세션 ID 확인
+            val sessionId = try {
+                audioTrack!!.audioSessionId
+            } catch (e: Exception) {
+                0
             }
-            val sessionId = player?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
-            if (sessionId != C.AUDIO_SESSION_ID_UNSET) {
+            
+            if (sessionId != 0) {
                 try {
                     visualizer = Visualizer(sessionId).apply {
                         captureSize = Visualizer.getCaptureSizeRange()[0] // 최소 크기 사용

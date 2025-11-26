@@ -367,8 +367,33 @@ class AuthRepositoryImpl(
                 clearUserSession()
                 Result.success(true)
             } else {
-                val errorBody = response.errorBody()?.string() ?: "알 수 없는 오류"
-                Result.failure(Exception("회원 탈퇴 실패: $errorBody"))
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    if (errorBody != null) {
+                        // JSON 파싱 시도
+                        val json = org.json.JSONObject(errorBody)
+                        json.optString("error", json.optString("message", "회원 탈퇴에 실패했습니다"))
+                    } else {
+                        when (response.code()) {
+                            400 -> "비밀번호가 올바르지 않습니다"
+                            401 -> "인증이 필요합니다"
+                            403 -> "권한이 없습니다"
+                            404 -> "사용자를 찾을 수 없습니다"
+                            500 -> "서버 오류가 발생했습니다"
+                            else -> "회원 탈퇴에 실패했습니다"
+                        }
+                    }
+                } catch (e: Exception) {
+                    when (response.code()) {
+                        400 -> "비밀번호가 올바르지 않습니다"
+                        401 -> "인증이 필요합니다"
+                        403 -> "권한이 없습니다"
+                        404 -> "사용자를 찾을 수 없습니다"
+                        500 -> "서버 오류가 발생했습니다"
+                        else -> "회원 탈퇴에 실패했습니다"
+                    }
+                }
+                Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {
             Result.failure(e)

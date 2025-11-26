@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
+import com.banya.neulpum.presentation.ui.components.CommonSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -310,39 +311,11 @@ fun PromptScreen(
         }
     }
     
-    // Snackbar (하단에 표시)
-    if (showSnackbar) {
-        LaunchedEffect(showSnackbar) {
-            kotlinx.coroutines.delay(3000)
-            showSnackbar = false
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .height(60.dp),
-                color = Color(0xFF10A37F),
-                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        snackbarMessage, 
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
-                }
-            }
-        }
-    }
+    // Snackbar
+    CommonSnackbar(
+        message = snackbarMessage,
+        showSnackbar = showSnackbar,
+        onDismiss = { showSnackbar = false }
+    )
 }
 

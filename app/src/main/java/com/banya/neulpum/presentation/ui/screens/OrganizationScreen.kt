@@ -19,11 +19,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.layout.imePadding
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import com.banya.neulpum.domain.entity.Organization
 import com.banya.neulpum.data.dto.OrganizationDto
 import com.banya.neulpum.data.repository.OrganizationRepositoryImpl
 import com.banya.neulpum.di.NetworkModule
 import com.banya.neulpum.presentation.viewmodel.AuthViewModel
+import com.banya.neulpum.presentation.ui.components.CommonSnackbar
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,8 +48,18 @@ fun OrganizationScreen(
     var isLoading by remember { mutableStateOf(true) }
     
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
     val scope = rememberCoroutineScope()
     val orgRepository = remember { OrganizationRepositoryImpl(context) }
+    val scrollState = rememberScrollState()
+    
+    // 태블릿에서는 최대 너비 제한
+    val maxContentWidth = when {
+        screenWidth > 1200.dp -> 800.dp  // 큰 태블릿
+        screenWidth > 800.dp -> 700.dp    // 중간 태블릿
+        else -> screenWidth               // 핸드폰
+    }
     
     // OrganizationDto를 Organization으로 변환하는 함수
     fun OrganizationDto.toOrganization(): Organization {
@@ -59,25 +75,41 @@ fun OrganizationScreen(
     // 현재 기관 정보 로드
     LaunchedEffect(Unit) {
         try {
-            // 1) User 객체에서 기관 정보 확인
+            // 최신 사용자 정보 가져오기
+            authViewModel.getMyProfile()
+            
             val user = authViewModel.currentUser
             if (user?.organizationName != null && user.organizationApiKey != null) {
                 currentOrganization = Organization(
                     id = "", // User 객체에는 id가 없으므로 빈 문자열
                     name = user.organizationName,
-                    description = user.organizationDescription ?: "", // User 객체의 description 사용
+                    description = user.organizationDescription ?: "",
                     apiKey = user.organizationApiKey,
                     isActive = true
                 )
-                isLoading = false
-                return@LaunchedEffect
+            } else {
+                currentOrganization = null
             }
-            
-            // 사용자의 현재 기관 정보는 AuthViewModel에서 이미 가져옴
         } catch (e: Exception) {
-            // 에러 무시
+            currentOrganization = null
         } finally {
             isLoading = false
+        }
+    }
+    
+    // currentUser가 변경될 때마다 기관 정보 업데이트
+    LaunchedEffect(authViewModel.currentUser) {
+        val user = authViewModel.currentUser
+        if (user?.organizationName != null && user.organizationApiKey != null) {
+            currentOrganization = Organization(
+                id = "",
+                name = user.organizationName,
+                description = user.organizationDescription ?: "",
+                apiKey = user.organizationApiKey,
+                isActive = true
+            )
+        } else {
+            currentOrganization = null
         }
     }
     
@@ -120,7 +152,9 @@ fun OrganizationScreen(
                 if (response.isSuccessful) {
                     snackbarMessage = "기관 가입이 완료되었습니다"
                     showSnackbar = true
-                    currentOrganization = org.toOrganization()
+                    // 최신 사용자 정보 가져오기
+                    authViewModel.getMyProfile()
+                    // currentOrganization은 LaunchedEffect에서 자동으로 업데이트됨
                     foundOrganization = null
                     apiKey = ""
                 } else {
@@ -136,146 +170,142 @@ fun OrganizationScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        // Top App Bar
-        TopAppBar(
-            title = {
-                Text(
-                    "기관 관리",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.Filled.ArrowBack,
-                        contentDescription = "뒤로가기",
-                        tint = Color.Black
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "기관 관리",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White,
-                titleContentColor = Color.Black
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Filled.ArrowBack,
+                            contentDescription = "뒤로가기",
+                            tint = Color.Black
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
-        )
-        
+        },
+        containerColor = Color.White
+    ) { paddingValues ->
         if (isLoading) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         } else {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(paddingValues)
+                    .imePadding()
             ) {
-                // 현재 기관 정보 표시 (기관이 있을 때만)
-                if (currentOrganization != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .widthIn(max = maxContentWidth)
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState)
+                        .padding(24.dp)
+                        .padding(bottom = 80.dp), // 버튼 공간 확보
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // 현재 기관 정보 표시 (기관이 있을 때만)
+                    if (currentOrganization != null) {
                         Column(
-                            modifier = Modifier.padding(20.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Business,
-                                    contentDescription = null,
-                                    tint = Color(0xFF10A37F),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "현재 기관",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF10A37F)
-                                )
-                            }
+                            Text(
+                                "현재 기관",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
                             
                             Text(
-                                "${currentOrganization!!.name}",
-                                fontSize = 16.sp,
+                                currentOrganization!!.name,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                                color = Color.Black
                             )
                             
                             if (!currentOrganization!!.description.isNullOrBlank()) {
                                 Text(
-                                    "${currentOrganization!!.description}",
-                                    fontSize = 14.sp,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(bottom = 8.dp)
+                                    currentOrganization!!.description,
+                                    fontSize = 15.sp,
+                                    color = Color.Gray
                                 )
                             }
                             
-                            Text(
-                                "API Key: ${currentOrganization!!.apiKey}",
-                                fontSize = 12.sp,
-                                color = Color.Gray,
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "API Key ${currentOrganization!!.apiKey}",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("API Key", currentOrganization!!.apiKey)
+                                        clipboard.setPrimaryClip(clip)
+                                        snackbarMessage = "API Key가 복사되었습니다"
+                                        showSnackbar = true
+                                    },
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.ContentCopy,
+                                        contentDescription = "복사",
+                                        tint = Color(0xFF10A37F),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-                
-                // 기관 검색/가입 섹션 (기관이 있든 없든 항상 표시)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
+                    
+                    // 기관 검색/가입 섹션
                     Column(
-                        modifier = Modifier.padding(20.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                tint = Color(0xFF10A37F),
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "기관 검색",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF10A37F)
-                            )
-                        }
+                        Text(
+                            "기관 검색",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
                         
                         Text(
                             "기관 API 키를 입력하여 기관을 검색하고 가입하세요.",
                             fontSize = 14.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 16.dp)
+                            color = Color.Gray
                         )
                         
                         OutlinedTextField(
                             value = apiKey,
                             onValueChange = { apiKey = it },
-                            label = { Text("기관 API 키", color = Color.Gray) },
+                            placeholder = { Text("기관 API 키", color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -284,95 +314,64 @@ fun OrganizationScreen(
                                 focusedTextColor = Color.Black,
                                 unfocusedTextColor = Color.Black
                             ),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Button(
-                            onClick = { searchOrganization() },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = apiKey.isNotBlank() && !isLookingUp,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF10A37F)
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            if (isLookingUp) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
-                            Text(
-                                "기관 검색",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
                         
                         // 검색된 기관 정보 표시
                         if (foundOrganization != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10A37F))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF8F9FA), RoundedCornerShape(12.dp))
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
+                                Text(
+                                    "검색된 기관",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF10A37F)
+                                )
+                                
+                                Text(
+                                    "기관명: ${foundOrganization!!.name}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black
+                                )
+                                
+                                if (!foundOrganization!!.description.isNullOrBlank()) {
                                     Text(
-                                        "검색된 기관",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF10A37F),
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
-                                    
-                                    Text(
-                                        "기관명: ${foundOrganization!!.name}",
+                                        "설명: ${foundOrganization!!.description}",
                                         fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(bottom = 4.dp)
+                                        color = Color.Gray
                                     )
-                                    
-                                    if (!foundOrganization!!.description.isNullOrBlank()) {
-                                        Text(
-                                            "설명: ${foundOrganization!!.description}",
-                                            fontSize = 12.sp,
-                                            color = Color.Gray,
-                                            modifier = Modifier.padding(bottom = 8.dp)
+                                }
+                                
+                                Button(
+                                    onClick = { joinOrganization() },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp),
+                                    enabled = !isJoining,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF10A37F),
+                                        disabledContainerColor = Color.Gray
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    if (isJoining) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp
                                         )
-                                    }
-                                    
-                                    Button(
-                                        onClick = { joinOrganization() },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        enabled = !isJoining,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF10A37F)
-                                        ),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        if (isJoining) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(16.dp),
-                                                color = Color.White,
-                                                strokeWidth = 2.dp
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                        }
+                                    } else {
                                         Text(
                                             "기관 가입",
                                             color = Color.White,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
@@ -380,33 +379,47 @@ fun OrganizationScreen(
                         }
                     }
                 }
+                
+                // 기관 검색 버튼 (하단 고정)
+                Button(
+                    onClick = { searchOrganization() },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .widthIn(max = maxContentWidth)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 15.dp)
+                        .height(56.dp),
+                    enabled = apiKey.isNotBlank() && !isLookingUp,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10A37F),
+                        disabledContainerColor = Color.Gray
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isLookingUp) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "기관 검색",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }
     
     // Snackbar
-    if (showSnackbar) {
-        LaunchedEffect(showSnackbar) {
-            kotlinx.coroutines.delay(3000)
-            showSnackbar = false
-        }
-        
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Card(
-                modifier = Modifier.padding(16.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF333333))
-            ) {
-                Text(
-                    text = snackbarMessage,
-                    color = Color.White,
-                    modifier = Modifier.padding(16.dp),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-    }
+    CommonSnackbar(
+        message = snackbarMessage,
+        showSnackbar = showSnackbar,
+        onDismiss = { showSnackbar = false }
+    )
 }

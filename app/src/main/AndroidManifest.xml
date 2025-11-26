@@ -78,6 +78,70 @@
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Neulpum">
         </activity>
+        
+        <activity
+            android:name=".presentation.activity.OrganizationActivity"
+            android:exported="false"
+            android:label="기관"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
+        
+        <activity
+            android:name=".presentation.activity.ProfileEditActivity"
+            android:exported="false"
+            android:label="프로필 수정"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
+        
+        <activity
+            android:name=".presentation.activity.AccountSectionActivity"
+            android:exported="false"
+            android:label="계정 관리"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
+        
+        <activity
+            android:name=".presentation.activity.ChangePasswordActivity"
+            android:exported="false"
+            android:label="비밀번호 변경"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
+        
+        <activity
+            android:name=".presentation.activity.PromptActivity"
+            android:exported="false"
+            android:label="개인화"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
+        
+        <activity
+            android:name=".presentation.activity.VoiceChatSettingsActivity"
+            android:exported="false"
+            android:label="음성채팅 설정"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
+        
+        <activity
+            android:name=".presentation.activity.VoiceDetectionSettingsActivity"
+            android:exported="false"
+            android:label="음성 감지 설정"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
+        
+        <activity
+            android:name=".presentation.activity.VoiceSettingsActivity"
+            android:exported="false"
+            android:label="음성 설정"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Neulpum">
+        </activity>
     </application>
 
 </manifest>

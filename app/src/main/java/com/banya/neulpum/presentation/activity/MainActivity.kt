@@ -37,11 +37,12 @@ import com.banya.neulpum.domain.entity.Conversation
 import com.banya.neulpum.presentation.ui.screens.ChatScreen
 import com.banya.neulpum.presentation.ui.screens.SettingsScreen
 import com.banya.neulpum.presentation.ui.screens.VoiceChatScreen
-import com.banya.neulpum.presentation.ui.screens.OrganizationScreen
-import com.banya.neulpum.presentation.ui.screens.ProfileEditScreen
-import com.banya.neulpum.presentation.ui.screens.AccountSectionScreen
-import com.banya.neulpum.presentation.ui.screens.PromptScreen
-import com.banya.neulpum.presentation.ui.screens.VoiceChatSettingsScreen
+import com.banya.neulpum.presentation.activity.LoginActivity
+import com.banya.neulpum.presentation.activity.OrganizationActivity
+import com.banya.neulpum.presentation.activity.ProfileEditActivity
+import com.banya.neulpum.presentation.activity.AccountSectionActivity
+import com.banya.neulpum.presentation.activity.PromptActivity
+import com.banya.neulpum.presentation.activity.VoiceChatSettingsActivity
 import com.banya.neulpum.presentation.viewmodel.AuthViewModel
 import com.banya.neulpum.presentation.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
@@ -61,6 +62,8 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import com.banya.neulpum.utils.NetworkUtils
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -158,11 +161,6 @@ fun MainScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var selectedScreen by remember { mutableStateOf("voice") }
-    var showOrganizationScreen by remember { mutableStateOf(false) }
-    var showProfileEditScreen by remember { mutableStateOf(false) }
-    var showAccountSectionScreen by remember { mutableStateOf(false) }
-    var showPromptScreen by remember { mutableStateOf(false) }
-    var showVoiceChatSettingsScreen by remember { mutableStateOf(false) }
     var drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var scope = rememberCoroutineScope()
     
@@ -593,12 +591,27 @@ fun MainScreen() {
                 )
                 "settings" -> SettingsScreen(
                     paddingValues = paddingValues,
-                    onNavigateToOrganization = { showOrganizationScreen = true },
+                    onNavigateToOrganization = {
+                        val intent = Intent(context, OrganizationActivity::class.java)
+                        context.startActivity(intent)
+                    },
                     onNavigateToOrganizationCreate = { },
-                    onNavigateToProfileEdit = { showProfileEditScreen = true },
-                    onNavigateToAccountSection = { showAccountSectionScreen = true },
-                    onNavigateToPrompt = { showPromptScreen = true },
-                    onNavigateToVoiceChatSettings = { showVoiceChatSettingsScreen = true }
+                    onNavigateToProfileEdit = {
+                        val intent = Intent(context, ProfileEditActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    onNavigateToAccountSection = {
+                        val intent = Intent(context, AccountSectionActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    onNavigateToPrompt = {
+                        val intent = Intent(context, PromptActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    onNavigateToVoiceChatSettings = {
+                        val intent = Intent(context, VoiceChatSettingsActivity::class.java)
+                        context.startActivity(intent)
+                    }
                 )
                 else -> androidx.compose.runtime.key(currentConversationId) {
                     ChatScreen(
@@ -629,50 +642,5 @@ fun MainScreen() {
                 }
             }
         }
-        
-        // 기관 관리 화면
-        if (showOrganizationScreen) {
-            OrganizationScreen(
-                onBack = { showOrganizationScreen = false },
-                authViewModel = authViewModel
-            )
-        }
-        
-        // 프로필 수정 화면
-        if (showProfileEditScreen) {
-            ProfileEditScreen(
-                onBack = { showProfileEditScreen = false },
-                authViewModel = authViewModel
-            )
-        }
-        
-        // 계정 관리 화면
-        if (showAccountSectionScreen) {
-            AccountSectionScreen(
-                onBack = { showAccountSectionScreen = false },
-                onAccountDeletionRequest = { 
-                    // 계정 삭제 요청 화면으로 이동하는 로직 추가 필요
-                },
-                onDeleteAccount = { 
-                    // 즉시 회원 탈퇴 로직 추가 필요
-                }
-            )
-        }
-        
-        // 프롬프트 설정 화면
-        if (showPromptScreen) {
-            PromptScreen(
-                onBack = { showPromptScreen = false },
-                authViewModel = authViewModel
-            )
-        }
-        
-        // 음성채팅 설정 화면
-        if (showVoiceChatSettingsScreen) {
-            VoiceChatSettingsScreen(
-                onBack = { showVoiceChatSettingsScreen = false }
-            )
-        }
-        
     }
 }

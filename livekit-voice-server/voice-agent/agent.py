@@ -180,9 +180,14 @@ class VoiceAgent:
 
             # Stream from SSE server
             logger.info(f"Calling SSE server: {SSE_SERVER_URL}")
+            logger.info(f"Payload: prompt={formatted_prompt[:50]}..., tts={payload.get('tts')}")
             accumulated_text = ""
 
+            event_count = 0
             async for event in self.sse_client.stream(payload):
+                event_count += 1
+                if event_count <= 5:
+                    logger.info(f"SSE event #{event_count}: type={event.get('type')}")
                 if self.is_interrupted:
                     logger.info("Response interrupted, stopping")
                     break

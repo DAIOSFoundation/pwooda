@@ -1,0 +1,32 @@
+# LiveKit Server Configuration (Local Development)
+port: 7880
+
+rtc:
+  # WebRTC over TCP port
+  tcp_port: 7881
+  # UDP port range for WebRTC media
+  port_range_start: 50000
+  port_range_end: 50100
+  # For local development, use host IP
+  use_external_ip: false
+
+redis:
+  address: redis:6379
+
+# API keys are set via environment variable LIVEKIT_KEYS
+# Format: API_KEY:API_SECRET
+
+logging:
+  level: info
+  pion_level: warn
+
+# Room settings
+room:
+  # Auto-create rooms when participants join
+  auto_create: true
+  # Room will be deleted after all participants leave
+  empty_timeout: 300  # 5 minutes
+
+# TURN server (disabled for local development)
+turn:
+  enabled: false

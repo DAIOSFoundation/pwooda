@@ -1,384 +1,297 @@
-# Pwooda - Life Help Agent App for Developmental Disabilities, Mental Retardation
+# PWOODA - AI Voice Assistant for Developmental Disabilities
 
-## 📱 Project Overview
+AI 기반 발달장애인 생활 도움 앱
 
-Pwooda is an AI-based Android application designed to help people with developmental disabilities in their daily lives. It provides personalized motivation, schedule guidance, behavior improvement tips, and more based on individual data and welfare facility programs. Through voice conversations and AI image generation, it offers rich interactions for users.
-
-## ✨ Key Features
-
-### 🤖 AI-Based Personalized Services
-- **Personalized Content Based on Individual Data**: Customized services based on user interests, schedules, goals, etc.
-- **11 Service Categories**: Schedule, motivation, medication guidance, life skills, social skills, safety, behavior improvement, object explanation, general conversation, image generation, image saving
-- **Conversation History-Based Intent Analysis**: Accurate intent understanding considering previous conversation context
-- **Continuous Conversations**: Remembers the last 10 user questions and 3 AI responses for natural conversation flow
-
-### 🎤 Voice Interaction
-- **Speech Recognition**: Converts user voice input to text
-- **TTS (Text-to-Speech)**: Outputs AI responses in natural voice
-- **Teenage Girl Tone**: Communicates with users in a friendly and cute tone
-
-### 👤 User Recognition
-- **Face Recognition-Based User Identification**: Detects user faces through camera to provide personalized services
-- **User Registration**: Asks for name during first recognition and registers
-- **Personal Data Mapping**: Links with registered user information
-
-### 📷 Camera Features
-- **Object Recognition**: Provides descriptions of objects photographed with camera
-- **Schedule Relevance Analysis**: Guides the relationship between photographed objects and user's schedule/programs
-
-### 🎨 AI Image Generation
-- **ComfyUI-Based Local Image Generation**: Fast and secure local image generation
-- **Gemini-Based Korean-English Prompt Translation**: Converts user's Korean requests to accurate English prompts
-- **Background-Free Ghibli Style**: Creates clean and beautiful images with transparent backgrounds and Ghibli style
-- **Real-Time Image Generation**: High-quality image generation within 15-20 seconds
-
-### 💾 Image Saving Feature
-- **Gallery Storage**: Saves generated images to Android's default photo album
-- **Automatic Folder Creation**: Automatically saves to `Pictures/Pwooda` folder
-- **Save Intent Recognition**: Automatically recognizes save requests like "save the picture", "save to album"
-
-## 🏗️ Technology Stack
-
-### Android App
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose
-- **Architecture**: MVVM (Model-View-ViewModel)
-- **Networking**: OkHttp
-- **JSON Processing**: JSONObject/JSONArray
-- **Image Processing**: Bitmap, Base64 encoding/decoding
-- **Gallery Storage**: MediaStore API
-- **Permission Management**: Context-based gallery access
-
-### AI Services
-- **Natural Language Processing**: Google Gemini API
-- **Speech Synthesis**: Google Cloud TTS
-- **Face Recognition**: ML Kit Face Detection
-- **Image Generation**: ComfyUI (local server)
-
-### ComfyUI Server
-- **Python**: 3.10.18
-- **PyTorch**: 2.7.1
-- **ComfyUI**: 0.3.45
-- **Hardware Acceleration**: MPS (Metal Performance Shaders)
-- **Model**: SDXL (Stable Diffusion XL)
-- **Image Size**: 512x512 (optimized)
-- **Sampling Steps**: 20 (for Ghibli style)
-
-### Network and Security
-- **HTTP Communication**: Local ComfyUI server access
-- **Network Security Config**: HTTP communication allowance settings
-- **IP Address**: `192.168.219.122:8000` (Mac M4 local server)
-- **Timeout**: 120 seconds (for image generation)
-
-### Permission Management
-- **WRITE_EXTERNAL_STORAGE**: Gallery write for Android 9 and below
-- **READ_EXTERNAL_STORAGE**: Gallery read for Android 13 and below
-- **MediaStore API**: Android 10+ Scoped Storage support
-
-## 📊 Service Categories
-
-| No. | Category | Description | Example |
-|-----|----------|-------------|---------|
-| 1 | Schedule | Today's schedule, schedule, program guidance | "What's today's plan?", "Tell me the schedule" |
-| 2 | Goals/Motivation | Goals, motivation, encouragement, praise | "What's your goal?", "Motivate me" |
-| 3 | Medication Guidance | Medication intake, side effects, emergency situations | "When should I take medicine?", "What are the side effects?" |
-| 4 | Life Skills | Daily living skills, cooking, cleaning, personal hygiene | "How do I wash hands?", "How do I brush teeth?" |
-| 5 | Social Skills | Conversation, greetings, friendships, social situations | "How do I greet?", "How do I talk with friends?" |
-| 6 | Safety | Safety, protection, dangerous situations, first aid | "When should I call 119?", "There's a fire" |
-| 7 | Behavior Improvement | Behavior improvement, emotional expression, anxiety relief | "I'm angry", "I'm anxious" |
-| 8 | Object Explanation | Requests for explanation of objects, items, photos | "What's this?", "Explain this" |
-| 9 | Drawing | Drawing requests, image generation requests | "Draw a picture", "Create an image" |
-| 10 | Save Drawing | Requests to save generated drawings | "Save the picture", "Save to album" |
-| 11 | General Conversation | All other questions | "Hello", "I'm feeling good" |
-
-## 🚀 Usage
-
-### 1. App Launch and Permission Grant
-```bash
-# When launching the app, the following permissions are requested
-- Camera permission
-- Microphone permission
-- Gallery storage permission (Android 9 and below)
-```
-
-### 2. First-Time User Registration
-```
-1. When a face is detected by camera, voice guidance
-   "Hello! What's your name? Please say it clearly!"
-
-2. When name is spoken clearly, user registration completes
-   - If the name is not registered, guidance is repeated
-
-3. After registration, personalized services begin
-```
-
-### 3. Voice Conversation
-```
-User: "Tell me today's schedule"
-AI: "Nuri! Today you have morning exercise at 9 AM, art activity at 10 AM~ 😊"
-
-User: "When is that?"
-AI: "Remember what I said earlier? Morning exercise at 9 AM, art activity at 10 AM!"
-```
-
-### 4. AI Image Generation
-```
-User: "Draw a cute puppy"
-AI: "I'll draw a picture for you! Please wait a moment."
-→ Gemini converts Korean request to English prompt
-→ ComfyUI generates image with Ghibli style + transparent background
-→ Completed image displayed after 15-20 seconds
-```
-
-### 5. Image Saving
-```
-User: "Save the picture"
-AI: "I've saved the picture to your gallery!"
-→ Automatically saved to Pictures/Pwooda folder
-→ Filename: Pwooda_timestamp.jpg
-```
-
-### 6. Camera Object Recognition
-```
-1. Click camera button
-2. Point at object for automatic recognition
-3. Object description + guidance on relevance to today's schedule
-```
-
-## 🔧 Installation and Setup
-
-### ComfyUI Server Setup
-
-#### 1. ComfyUI Installation and Configuration
-```bash
-# Navigate to ComfyUI directory
-cd /Users/tony/ComfyUI
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Run server with MPS optimization
-PYTORCH_ENABLE_MPS_FALLBACK=1 python main.py --listen 0.0.0.0 --port 8000 --use-split-cross-attention
-```
-
-#### 2. Server Status Check
-```bash
-# Check server connection
-curl http://192.168.219.122:8000
-
-# Check logs
-# - Verify MPS acceleration activation
-# - Verify SDXL model loading
-# - Verify successful image generation logs
-```
-
-### Android App Build and Installation
-
-#### 1. Project Build
-```bash
-# Navigate to project directory
-cd /Users/tony/AndroidProjects/pwooda
-
-# Gradle build
-./gradlew assembleDebug
-```
-
-#### 2. APK Installation
-```bash
-# Install APK on device
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-
-# Verify installation
-adb shell pm list packages | grep pwooda
-```
-
-## 📁 Project Structure
+## 프로젝트 구조
 
 ```
 pwooda/
-├── app/
-│   ├── src/main/
-│   │   ├── java/com/banya/pwooda/
-│   │   │   ├── data/                    # Data models
-│   │   │   │   ├── CustomerData.kt
-│   │   │   │   └── ProductData.kt
-│   │   │   ├── service/                 # Service classes
-│   │   │   │   ├── FalAIService.kt      # ComfyUI image generation
-│   │   │   │   ├── GoogleCloudTTSService.kt
-│   │   │   │   ├── CustomerDataService.kt
-│   │   │   │   └── PaymentService.kt
-│   │   │   ├── viewmodel/
-│   │   │   │   └── GeminiViewModel.kt   # Main ViewModel
-│   │   │   ├── ui/
-│   │   │   │   ├── screens/
-│   │   │   │   │   └── MainScreen.kt
-│   │   │   │   ├── components/
-│   │   │   │   │   ├── CameraComponent.kt
-│   │   │   │   │   └── SpeechRecognitionComponent.kt
-│   │   │   │   └── theme/
-│   │   │   ├── MainActivity.kt
-│   │   │   └── SplashActivity.kt
-│   │   ├── assets/
-│   │   │   ├── data.json               # User data
-│   │   │   └── google_tts_key.json
-│   │   └── res/
-│   │       ├── xml/
-│   │       │   └── network_security_config.xml
-│   │       └── values/
-│   └── build.gradle.kts
-├── build.gradle.kts
-└── README.md
+├── client/                      # Android 클라이언트 앱
+│   ├── app/                     # Android 앱 모듈
+│   │   └── src/main/java/com/banya/neulpum/
+│   │       ├── data/            # 데이터 레이어
+│   │       │   ├── remote/      # API, WebSocket, LiveKit 클라이언트
+│   │       │   └── repository/  # 저장소 구현
+│   │       ├── domain/          # 도메인 레이어
+│   │       └── presentation/    # UI 레이어 (Compose)
+│   ├── build.gradle.kts         # 앱 빌드 설정
+│   ├── settings.gradle.kts      # Gradle 설정
+│   ├── gradlew                  # Gradle 래퍼
+│   └── local.properties         # 로컬 설정 (API 키)
+│
+├── livekit-voice-server/        # LiveKit 기반 음성 채팅 서버
+│   ├── docker-compose.yaml      # Docker 구성
+│   ├── livekit.yaml             # LiveKit 서버 설정
+│   ├── token-server/            # JWT 토큰 발급 서버 (FastAPI)
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   └── voice-agent/             # AI 음성 에이전트 (Python)
+│       ├── main.py              # Agent 진입점
+│       ├── agent.py             # Voice Agent 로직
+│       ├── sse_client.py        # 기존 LLM/TTS 서버 연동
+│       ├── requirements.txt
+│       └── Dockerfile
+│
+└── README.md                    # 이 파일
 ```
 
-## 🎯 Core Features Detail
+## 주요 기능
 
-### Conversation History-Based Intent Analysis
-```kotlin
-// Include recent 6 conversation messages in intent analysis
-val recentHistory = chatHistory.takeLast(6)
-val historyContext = if (recentHistory.isNotEmpty()) {
-    "Previous conversation:\n" + recentHistory.joinToString("\n") { "${it.role}: ${it.content}" }
-} else {
-    "No previous conversation"
-}
+### 음성 채팅 (LiveKit 기반)
+- 실시간 양방향 음성 통신
+- 클라이언트 측 STT (Google SpeechRecognizer)
+- 서버 측 LLM + TTS 스트리밍
+- 인터럽트(Barge-in) 지원
+
+### AI 서비스
+- 개인 맞춤형 일정 관리
+- 동기부여 및 행동 개선
+- 안전 안내 및 생활 기술
+- AI 이미지 생성
+
+## 시작하기
+
+### 1. Android 클라이언트 빌드
+
+```bash
+cd client
+
+# 환경 설정 파일 생성 (local.properties)
+# 아래 내용을 참고하여 설정:
+# - GEMINI_API_KEY: Gemini API 키
+# - TAVILY_API_KEY: Tavily 웹 검색 API 키
+# - LIVEKIT_TOKEN_SERVER_URL: LiveKit 토큰 서버 URL
+# - LIVEKIT_USE_LIVEKIT: LiveKit 모드 활성화 여부
+
+# 빌드
+./gradlew assembleDebug
+
+# 설치
+./gradlew installDebug
 ```
 
-### Gemini-Based Prompt Translation
-```kotlin
-// Convert Korean request to English image generation prompt
-val translationPrompt = """
-    The user has requested to draw a picture. Please convert the following request to an English image generation prompt.
-    
-    Requirements:
-    1. Translate the user's request to English and convert it to keywords suitable for image generation
-    2. Add "transparent background, no background, isolated" to generate images without background
-    3. Add "Studio Ghibli style, Hayao Miyazaki, anime, watercolor, soft lighting, magical atmosphere" to generate in Ghibli style
-    4. Add "detailed, high quality, masterpiece" to generate high-quality images
-"""
+> **참고**: 자세한 환경 설정 방법은 [환경 변수](#환경-변수) 섹션을 참조하세요.
+
+### 2. LiveKit 서버 실행 (로컬 테스트)
+
+```bash
+cd livekit-voice-server
+
+# 환경 변수 설정
+cp .env.example .env
+# .env 파일에서 API 키 설정
+
+# Docker Compose 실행
+docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f
 ```
 
-### ComfyUI Workflow Structure
-```json
-{
-  "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"}},
-  "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "prompt", "clip": ["1", 1]}},
-  "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "negative_prompt", "clip": ["1", 1]}},
-  "4": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512, "batch_size": 1}},
-  "5": {"class_type": "KSampler", "inputs": {"seed": 123, "steps": 20, "cfg": 7.0, "sampler_name": "dpmpp_2m", "scheduler": "karras", "denoise": 1.0, "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0], "latent_image": ["4", 0]}},
-  "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
-  "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "ComfyUI"}}
-}
+### 3. 서버 접속 테스트
+
+```bash
+# LiveKit 서버 상태 확인
+curl http://localhost:7880
+
+# Token 발급 테스트
+curl -X POST http://localhost:8081/api/v1/livekit/token \
+  -H "Authorization: Bearer dev" \
+  -H "Content-Type: application/json" \
+  -d '{"room_name": "test-room", "participant_identity": "user1", "participant_name": "Test User"}'
 ```
 
-## 🔄 Recent Updates (December 2024)
+## 아키텍처
 
-### v2.0 - Conversation History-Based Intent Analysis
-- **Conversation History Integration**: Includes recent 6 conversation messages in intent analysis
-- **Context-Based Intent Understanding**: Accurate intent analysis considering previous conversations
-- **Continuous Conversations**: Accurate recognition of context-dependent questions like "When is that?", "Draw it again"
+### 음성 채팅 흐름
 
-### v1.9 - Image Saving Feature
-- **Gallery Storage**: Saves generated images to Android's default photo album
-- **MediaStore API**: Android 10+ Scoped Storage support
-- **Save Intent Recognition**: Automatic recognition of "save the picture", "save to album"
-- **Error Handling**: Guidance message when no image to save
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         서버 인프라                              │
+│  ┌──────────────┐   ┌──────────────┐   ┌────────────────────┐  │
+│  │ LiveKit      │   │ Token Server │   │ Voice Agent        │  │
+│  │ Server       │   │ (FastAPI)    │   │ (Python)           │  │
+│  │              │◄──┤              │   │                    │  │
+│  │ - WebRTC     │   │ - JWT 발급   │   │ - Data Channel     │  │
+│  │ - 미디어     │   │ - 인증 연동  │   │   메시지 수신      │  │
+│  │   라우팅     │   │              │   │ - LLM/TTS 호출     │  │
+│  └──────┬───────┘   └──────────────┘   │ - 오디오 스트리밍  │  │
+│         │                              └─────────┬──────────┘  │
+│         │                                        │             │
+│         │              ┌─────────────────────────▼───────┐     │
+│         │              │ 기존 LLM/TTS 서버               │     │
+│         │              │ (SSE: /completion-with-tts)     │     │
+│         │              └─────────────────────────────────┘     │
+└─────────┼──────────────────────────────────────────────────────┘
+          │ WebRTC
+          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Android 클라이언트                          │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                    VoiceChatScreen                         │ │
+│  │  - Google STT (클라이언트 측 음성 인식)                    │ │
+│  │  - LiveKitRoomManager (Room 연결/관리)                     │ │
+│  │  - Data Channel (텍스트 전송, 인터럽트)                    │ │
+│  │  - AI 오디오 트랙 자동 재생                                │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### v1.8 - Conversation History Management Improvement
-- **Drawing Conversation Recording**: Drawing and save requests properly recorded in conversation history
-- **Image Clearing**: Previous images automatically deleted when starting new conversation
-- **Continuity Assurance**: All interactions recorded in conversation history to maintain context
+### 데이터 흐름
 
-### v1.7 - Gemini-Based Korean-English Prompt Translation
-- **Korean Request Support**: Directly receives and processes user's Korean requests
-- **Gemini Translation**: Converts Korean requests to accurate English prompts
-- **SDXL Limitation Resolution**: Solves SDXL model's Korean understanding limitation
-- **More Accurate Images**: Generates accurate images matching user intent
+1. **음성 입력**: 사용자 음성 → Google STT → 텍스트
+2. **메시지 전송**: 텍스트 → Data Channel → Voice Agent
+3. **LLM 처리**: Agent → 기존 SSE 서버 → 응답 생성
+4. **음성 출력**: TTS 오디오 → LiveKit → 클라이언트 재생
 
-### v1.6 - Background-Free Ghibli Style Images
-- **Transparent Background**: Generates clean images without background
-- **Ghibli Style**: Automatically applies Studio Ghibli style prompts
-- **High-Quality Optimization**: Adds detailed, high quality, masterpiece keywords
-- **Consistent Style**: All images generated in same art style
+### 상세 호출 흐름
 
-### v1.5 - ComfyUI-Based Image Generation
-- **Local Image Generation**: Fast and secure image generation through ComfyUI server
-- **SDXL Model**: Uses high-quality Stable Diffusion XL model
-- **MPS Acceleration**: Performance optimization with Apple Silicon GPU acceleration
-- **512x512 Optimization**: Balance between fast generation and quality
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              호출 흐름                                   │
+└─────────────────────────────────────────────────────────────────────────┘
 
-### v1.4 - Network Security Configuration
-- **HTTP Communication Allowance**: Network Security Config for local ComfyUI server access
-- **IP Address Setting**: Allows access to Mac M4 local server (192.168.219.122:8000)
-- **AndroidManifest.xml**: Security settings applied
+1. 토큰 요청
+   Android ──HTTP POST──► Token Server ──► JWT 토큰 반환
+                          (localhost:8081)
 
-### v1.3 - Performance Optimization
-- **Timeout Extension**: Extended image generation timeout to 120 seconds
-- **Sampling Optimization**: Optimized for Ghibli style with 20 steps
-- **MPS Acceleration**: Apple Silicon GPU utilization optimization
-- **Memory Management**: Efficient VRAM usage
+2. Room 연결
+   Android ──WebRTC──► LiveKit Server ◄── Voice Agent 참여
+                       (localhost:7880)
 
-## 🐛 Known Issues
+3. 음성 인식 (클라이언트 측)
+   사용자 음성 ──► Google STT ──► 텍스트
 
-### ComfyUI Server Related
-- **Bad linked input Error**: Intermittently occurs due to workflow JSON structure issues
-- **JSON Decode Error**: JSON parsing error during network transmission
-- **Solution**: Server restart or workflow retransmission
+4. 텍스트 전송
+   Android ──Data Channel──► Voice Agent
+             (LiveKit 경유)
 
-### Android App Related
-- **Permission Requests**: Automatic handling of gallery storage permissions on Android 10+
-- **Network Timeout**: Timeout occurs when image generation takes too long
-- **Solution**: Most issues resolved with 120-second timeout setting
+5. LLM/TTS 호출
+   Voice Agent ──HTTP/SSE──► 기존 LLM-TTS 서버
+                              (210.109.53.87/completion-with-tts)
 
-## 🤝 Contributing and Inquiries
+   응답 형식:
+   {"type": "text", "content": "..."}
+   {"type": "audio", "audio": "base64...", "sentenceId": 1}
+   {"type": "done"}
 
-### Bug Reports
-- Please report bugs through GitHub Issues
-- Include detailed reproduction methods with logs
+6. 오디오 스트리밍
+   Voice Agent ──Audio Track──► LiveKit Server ──► Android
+                (WebRTC)                          (자동 재생)
+```
 
-### Feature Suggestions
-- Suggest new feature ideas through Pull Requests
-- Suggestions that improve user experience for people with developmental disabilities are welcome
+### 통신 프로토콜 요약
 
-### Development Environment Setup
-- Android Studio Arctic Fox or higher
-- Kotlin 1.8+
-- Java 17
-- ComfyUI Python 3.10+
+| 구간 | 프로토콜 | 설명 |
+|------|----------|------|
+| Android → Token Server | HTTP | JWT 토큰 발급 |
+| Android ↔ LiveKit | WebRTC | Room 연결, 오디오 수신 |
+| Android → Agent | Data Channel | 텍스트 전송 (STT 결과) |
+| Agent → LLM-TTS 서버 | HTTP/SSE | 기존 서버 호출 |
+| Agent → Android | Audio Track | TTS 오디오 스트리밍 |
 
-## 📄 License
+## 기술 스택
 
-This project is distributed under the MIT License.
+### Android 클라이언트
+- **언어**: Kotlin
+- **UI**: Jetpack Compose
+- **아키텍처**: MVVM
+- **실시간 통신**: LiveKit Android SDK
+- **음성 인식**: Android SpeechRecognizer
+- **네트워크**: OkHttp, Retrofit
 
-## 🙏 Acknowledgments
+### LiveKit 서버
+- **미디어 서버**: LiveKit Server (Docker)
+- **토큰 서버**: FastAPI (Python)
+- **Voice Agent**: LiveKit Agents Framework (Python)
+- **STT/LLM/TTS**: 기존 SSE 서버 연동
 
-- **Google Gemini API**: Natural language processing and prompt translation
-- **ComfyUI**: Local image generation server
-- **Stability AI**: SDXL model provision
-- **Apple**: MPS acceleration support
+## 환경 변수
 
----
+### Android 클라이언트 설정 (client/local.properties)
 
-**Pwooda** - AI friend for people with developmental disabilities 🫂✨
+Android 앱의 환경 설정은 `client/local.properties` 파일에서 관리합니다.
+이 파일은 Git에 포함되지 않으므로 직접 생성해야 합니다.
 
-## 🆕 July 2025 Major Updates and UX Improvements
+```properties
+# Android SDK 경로 (Android Studio가 자동 생성)
+sdk.dir=/path/to/Android/sdk
 
-- **Splash Music**: intro_music.mp3 plays when app launches, main screen only loads after music ends (skip button supported)
-- **Gemini-Based Name Recognition**: When recognizing names, Gemini LLM generates natural friendly welcome messages and outputs directly to TTS/screen
-- **Image Generation Animation**: During image generation, running.mp4 (or sprite sheet) based animation plays in screen center with transparent background
-- **Sprite Sheet Animation**: Utilizes drawing_sheet.png (5x9, 43 frames) sprite sheet to provide smooth animation during image generation (transparent background supported)
-- **Completed Image Round Masking**: AI-generated completed images are masked in rounded corner boxes (32dp) for clean display
-- **Duplicate Image Output Prevention**: UI improvement to display completed images only once
-- **Consistent Friendly Tone**: All conversations including name recognition, welcome messages, and guidance output in consistent 10-year-old girl friend tone
+# AI 서비스 API 키
+GEMINI_API_KEY=your_gemini_api_key
+TAVILY_API_KEY=your_tavily_api_key
 
-## 🖼️ Image Generation UX Example
+# LiveKit 설정
+# 로컬 개발: http://10.0.2.2:8081 (에뮬레이터에서 localhost 접근)
+# 실제 기기: http://your-pc-ip:8081
+# 프로덕션: https://your-server.com
+LIVEKIT_TOKEN_SERVER_URL=http://10.0.2.2:8081
 
-1. When user says "Draw a cute puppy"
-2. Sprite sheet animation (transparent background) plays in center with "Image generating..." text displayed
-3. When image generation completes, completed image is displayed once in rounded corner box
-4. When "save the picture" is requested, it's saved to gallery
+# LiveKit 모드 활성화 (true/false)
+# true: LiveKit 음성 채팅 사용
+# false: 기존 WebSocket 음성 채팅 사용
+LIVEKIT_USE_LIVEKIT=true
+```
 
-## 👤 Name Recognition/Registration UX Example
+#### 환경별 설정 예시
 
-1. After face recognition, "What's your name?" voice guidance
-2. When user says name, Gemini extracts name and outputs friendly welcome message like "Tony! Nice to meet you~ I'll call you often from now on!" to screen+TTS
-3. If name is not registered, guidance is repeated
+**로컬 개발 (에뮬레이터)**
+```properties
+LIVEKIT_TOKEN_SERVER_URL=http://10.0.2.2:8081
+LIVEKIT_USE_LIVEKIT=true
+```
+
+**로컬 개발 (실제 기기)**
+```properties
+# PC의 실제 IP 주소 사용 (예: 192.168.1.100)
+LIVEKIT_TOKEN_SERVER_URL=http://192.168.1.100:8081
+LIVEKIT_USE_LIVEKIT=true
+```
+
+**프로덕션**
+```properties
+LIVEKIT_TOKEN_SERVER_URL=https://api-llmops.banya.ai
+LIVEKIT_USE_LIVEKIT=true
+```
+
+**LiveKit 비활성화 (기존 WebSocket 모드)**
+```properties
+LIVEKIT_USE_LIVEKIT=false
+```
+
+### LiveKit 서버 설정 (livekit-voice-server/.env)
+
+LiveKit 서버의 환경 설정은 `livekit-voice-server/.env` 파일에서 관리합니다.
+`.env.example` 파일을 복사하여 사용하세요.
+
+```bash
+# LiveKit 서버 인증 (docker-compose에서 사용)
+LIVEKIT_API_KEY=devkey
+LIVEKIT_API_SECRET=secret1234567890
+
+# LiveKit 서버 URL (Voice Agent가 사용)
+LIVEKIT_URL=ws://localhost:7880
+
+# 인증 서버 URL (Token Server에서 access_token 검증용)
+AUTH_SERVER_URL=https://api-llmops.banya.ai
+
+# LLM-TTS 서버 URL (Voice Agent가 호출)
+SSE_SERVER_URL=http://210.109.53.87/completion-with-tts
+SSE_AUTH_TOKEN=your_sse_auth_token
+```
+
+## 방화벽 포트 (프로덕션)
+
+| 포트 | 프로토콜 | 용도 |
+|------|----------|------|
+| 443 | TCP | HTTPS/WSS |
+| 7880 | TCP | LiveKit HTTP API |
+| 7881 | TCP | WebRTC over TCP |
+| 3478 | UDP | TURN/UDP |
+| 5349 | TCP | TURN/TLS |
+| 50000-50100 | UDP | WebRTC 미디어 |
+
+## 라이선스
+
+Private - DAIOS Foundation

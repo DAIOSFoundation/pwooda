@@ -2,19 +2,20 @@
 SSE Client for existing LLM/TTS server
 Handles streaming responses from the server
 Supports large audio chunks (100KB+)
+
+Uses httpx for better compatibility with LiveKit's event loop.
 """
 
 import asyncio
 import json
 import logging
-from typing import AsyncIterator, Dict, Any
+from typing import AsyncIterator, Dict, Any, Optional
+from queue import Queue
+from threading import Thread
 
-import aiohttp
+import requests
 
 logger = logging.getLogger(__name__)
-
-# Large buffer size for audio data (1MB)
-MAX_LINE_SIZE = 1024 * 1024
 
 
 class SSEClient:
@@ -31,15 +32,10 @@ class SSEClient:
         self.base_url = base_url
         self.auth_token = auth_token
 
-    async def stream(self, payload: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
+    def _fetch_sse_sync(self, payload: Dict[str, Any], event_queue: Queue):
         """
-        Send a request to the SSE server and stream the response.
-
-        Args:
-            payload: Request payload (prompt, tts settings, etc.)
-
-        Yields:
-            Parsed SSE events as dictionaries
+        Synchronous SSE fetch running in a separate thread.
+        Puts events into the queue for async consumption.
         """
         headers = {
             "Authorization": f"Bearer {self.auth_token}",
@@ -47,34 +43,35 @@ class SSEClient:
             "Accept": "text/event-stream"
         }
 
-        timeout = aiohttp.ClientTimeout(total=300)  # 5 minute timeout
-
         try:
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(
-                    self.base_url,
-                    json=payload,
-                    headers=headers
-                ) as response:
+            logger.info(f"[Thread] Starting SSE request to {self.base_url}")
 
-                    if response.status != 200:
-                        error_text = await response.text()
-                        logger.error(f"SSE request failed: {response.status} - {error_text}")
-                        yield {"type": "error", "message": f"Server error: {response.status}"}
-                        return
+            with requests.post(
+                self.base_url,
+                json=payload,
+                headers=headers,
+                stream=True,
+                timeout=300
+            ) as response:
 
-                    logger.info(f"SSE response status: {response.status}, content-type: {response.content_type}")
+                if response.status_code != 200:
+                    logger.error(f"[Thread] SSE request failed: {response.status_code}")
+                    event_queue.put({"type": "error", "message": f"Server error: {response.status_code}"})
+                    event_queue.put(None)  # Signal end
+                    return
 
-                    # Use chunked reading with manual line buffering for large audio data
-                    buffer = ""
-                    chunk_count = 0
-                    async for chunk in response.content.iter_chunked(8192):
+                logger.info(f"[Thread] SSE response status: {response.status_code}")
+
+                buffer = ""
+                chunk_count = 0
+
+                for chunk in response.iter_content(chunk_size=8192, decode_unicode=True):
+                    if chunk:
                         chunk_count += 1
-                        chunk_str = chunk.decode('utf-8', errors='ignore')
-                        buffer += chunk_str
+                        buffer += chunk
 
                         if chunk_count <= 3:
-                            logger.info(f"Chunk {chunk_count}: {len(chunk)} bytes, buffer size: {len(buffer)}")
+                            logger.info(f"[Thread] Chunk {chunk_count}: {len(chunk)} chars")
 
                         # Process complete lines
                         while '\n' in buffer:
@@ -84,62 +81,100 @@ class SSEClient:
                             if not line:
                                 continue
 
-                            # SSE format: "data: {...}"
                             if line.startswith('data:'):
                                 data_str = line[5:].strip()
 
-                                # Handle [DONE] marker
                                 if data_str == "[DONE]":
-                                    logger.info("Received [DONE] marker")
-                                    yield {"type": "done"}
+                                    logger.info("[Thread] Received [DONE] marker")
+                                    event_queue.put({"type": "done"})
+                                    event_queue.put(None)  # Signal end
                                     return
 
                                 try:
                                     event = json.loads(data_str)
-                                    event_type = event.get("type", "unknown")
-                                    if event_type == "text":
-                                        logger.info(f"SSE text event: {event.get('content', '')[:50]}...")
-                                    elif event_type == "audio":
-                                        audio_len = len(event.get("audio", ""))
-                                        logger.info(f"SSE audio event: sentence_id={event.get('sentenceId')}, audio_len={audio_len}")
-                                    else:
-                                        logger.info(f"SSE event type: {event_type}")
-                                    yield event
-
-                                    if event.get("type") == "done":
-                                        return
-
+                                    event_queue.put(event)
                                 except json.JSONDecodeError:
-                                    logger.warning(f"Invalid SSE JSON: {data_str[:100]}...")
-                                    continue
+                                    logger.warning(f"[Thread] Invalid JSON: {data_str[:100]}...")
 
-                            # Some servers send "event:" prefix
-                            elif line.startswith('event:'):
-                                continue  # We use data-only format
+                # Process remaining buffer
+                if buffer.strip():
+                    line = buffer.strip()
+                    if line.startswith('data:'):
+                        data_str = line[5:].strip()
+                        if data_str and data_str != "[DONE]":
+                            try:
+                                event = json.loads(data_str)
+                                event_queue.put(event)
+                            except json.JSONDecodeError:
+                                pass
 
-                    # Process remaining buffer
-                    logger.info(f"SSE stream ended. Total chunks: {chunk_count}, remaining buffer: {len(buffer)} bytes")
-                    if buffer.strip():
-                        line = buffer.strip()
-                        logger.info(f"Processing remaining buffer line: {line[:100]}...")
-                        if line.startswith('data:'):
-                            data_str = line[5:].strip()
-                            if data_str and data_str != "[DONE]":
-                                try:
-                                    event = json.loads(data_str)
-                                    logger.info(f"Remaining buffer event type: {event.get('type')}")
-                                    yield event
-                                except json.JSONDecodeError:
-                                    logger.warning(f"Failed to parse remaining buffer JSON")
+                logger.info(f"[Thread] SSE stream completed. Total chunks: {chunk_count}")
+                event_queue.put(None)  # Signal end
 
-        except aiohttp.ClientError as e:
-            logger.error(f"HTTP client error: {e}")
-            yield {"type": "error", "message": str(e)}
-
-        except asyncio.TimeoutError:
-            logger.error("SSE request timed out")
-            yield {"type": "error", "message": "Request timed out"}
-
+        except requests.RequestException as e:
+            logger.error(f"[Thread] HTTP error: {e}")
+            event_queue.put({"type": "error", "message": str(e)})
+            event_queue.put(None)
         except Exception as e:
-            logger.error(f"SSE stream error: {e}")
-            yield {"type": "error", "message": str(e)}
+            logger.error(f"[Thread] Error: {e}")
+            event_queue.put({"type": "error", "message": str(e)})
+            event_queue.put(None)
+
+    async def stream(self, payload: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
+        """
+        Send a request to the SSE server and stream the response.
+
+        Uses a separate thread for HTTP to avoid event loop conflicts.
+
+        Args:
+            payload: Request payload (prompt, tts settings, etc.)
+
+        Yields:
+            Parsed SSE events as dictionaries
+        """
+        event_queue: Queue = Queue()
+
+        # Start the SSE fetch in a separate thread
+        thread = Thread(target=self._fetch_sse_sync, args=(payload, event_queue))
+        thread.daemon = True
+        thread.start()
+
+        logger.info("SSE thread started, waiting for events...")
+
+        # Yield events from the queue
+        while True:
+            # Check queue with a small delay to not block the event loop
+            try:
+                # Use asyncio.to_thread for non-blocking queue check
+                event = await asyncio.to_thread(event_queue.get, timeout=1.0)
+
+                if event is None:
+                    # End of stream
+                    logger.info("SSE stream ended (received None)")
+                    break
+
+                event_type = event.get("type", "unknown")
+                if event_type == "text":
+                    content = event.get('content', '')[:30]
+                    logger.debug(f"Yielding text event: {content}...")
+                elif event_type == "audio":
+                    audio_len = len(event.get("audio", ""))
+                    logger.info(f"Yielding audio event: sentence_id={event.get('sentenceId')}, len={audio_len}")
+                elif event_type == "error":
+                    logger.error(f"SSE error: {event.get('message')}")
+
+                yield event
+
+                if event_type == "done":
+                    break
+
+            except Exception as e:
+                # Queue.get timeout - just continue waiting
+                if "Empty" in str(type(e).__name__):
+                    continue
+                logger.error(f"Error getting event from queue: {e}")
+                break
+
+        # Wait for thread to finish
+        thread.join(timeout=1.0)
+        logger.info("SSE client finished")

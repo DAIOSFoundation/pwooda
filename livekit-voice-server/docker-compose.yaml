@@ -45,7 +45,8 @@ services:
     build: ./voice-agent
     restart: unless-stopped
     environment:
-      - LIVEKIT_URL=${LIVEKIT_URL:-ws://localhost:7880}
+      # Docker 내부에서는 서비스 이름으로 접근
+      - LIVEKIT_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
       - SSE_SERVER_URL=${SSE_SERVER_URL:-http://210.109.53.87/completion-with-tts}

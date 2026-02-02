@@ -270,16 +270,53 @@ LiveKit 서버의 환경 설정은 `livekit-voice-server/.env` 파일에서 관�
 LIVEKIT_API_KEY=devkey
 LIVEKIT_API_SECRET=secret1234567890
 
-# LiveKit 서버 URL (Voice Agent가 사용)
-LIVEKIT_URL=ws://localhost:7880
+# LiveKit 서버 URL (Token Server가 클라이언트에 반환)
+# 실제 기기 테스트 시 PC의 IP 사용 (예: ws://192.168.1.100:7880)
+LIVEKIT_URL=ws://192.168.1.100:7880
 
 # 인증 서버 URL (Token Server에서 access_token 검증용)
 AUTH_SERVER_URL=https://api-llmops.banya.ai
 
 # LLM-TTS 서버 URL (Voice Agent가 호출)
-SSE_SERVER_URL=http://210.109.53.87/completion-with-tts
+# 포트 8083 필수!
+SSE_SERVER_URL=http://210.109.53.87:8083/completion-with-tts
 SSE_AUTH_TOKEN=your_sse_auth_token
 ```
+
+### LiveKit 서버 설정 (livekit-voice-server/livekit.yaml)
+
+LiveKit 미디어 서버의 설정 파일입니다.
+
+```yaml
+port: 7880
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50100
+  use_external_ip: false  # 로컬 개발용
+
+redis:
+  address: redis:6379
+
+room:
+  auto_create: true
+  empty_timeout: 300
+
+# Agent 설정 (필수!)
+# 이 설정이 없으면 Voice Agent가 Room에 자동 참가하지 않음
+agent:
+  enabled: true
+  region: ""
+
+turn:
+  enabled: false  # 로컬 개발용
+```
+
+**주요 설정 항목:**
+- `agent.enabled: true`: Voice Agent가 Room에 자동 참가하도록 활성화 (필수)
+- `room.auto_create: true`: 참가자가 연결 시 Room 자동 생성
+- `rtc.port_range_*`: WebRTC 미디어용 UDP 포트 범위
 
 ## 방화벽 포트 (프로덕션)
 
@@ -291,6 +328,35 @@ SSE_AUTH_TOKEN=your_sse_auth_token
 | 3478 | UDP | TURN/UDP |
 | 5349 | TCP | TURN/TLS |
 | 50000-50100 | UDP | WebRTC 미디어 |
+
+## 변경 이력
+
+### 2026-02-03
+- **Token Server TTL 수정**: `token.with_ttl(3600)` → `token.with_ttl(timedelta(hours=1))`로 변경
+  - livekit-api 라이브러리의 TTL 파라미터는 `timedelta` 객체를 요구함
+- **실제 기기 테스트 설정 추가**:
+  - `client/local.properties`: 에뮬레이터용 `10.0.2.2` 대신 PC의 실제 IP 사용
+  - `livekit-voice-server/.env`: `LIVEKIT_URL`을 실제 IP로 변경 (Android 기기에서 `localhost` 접근 불가)
+- **Voice Agent Dockerfile 수정**: `libglib2.0-0`, `libgobject-2.0-0` 라이브러리 추가
+- **LiveKit Android SDK 버전 수정**:
+  - `io.livekit:livekit-android:2.11.0`
+  - `io.livekit:livekit-android-compose-components:1.4.0`
+- **JitPack 저장소 추가**: `client/settings.gradle.kts`에 LiveKit 의존성용 JitPack 추가
+- **Docker Compose 수정**: LIVEKIT_KEYS 환경변수 형식 수정 (`key: secret` 형태로)
+- **livekit.yaml Agent 설정 추가**: Agent가 Room에 자동 참가하도록 `agent.enabled: true` 추가
+- **Voice Agent 이벤트 핸들러 수정**: async 콜백을 sync 래퍼로 감싸서 등록 (livekit-rtc 호환성)
+- **Voice Agent DataPacket 시그니처 수정**: `data_received` 이벤트가 `DataPacket` 객체를 전달하도록 수정
+- **SSE 서버 URL 포트 수정**: `http://210.109.53.87/completion-with-tts` → `http://210.109.53.87:8083/completion-with-tts`
+
+### 실제 기기 테스트 체크리스트
+
+1. PC의 IP 주소 확인 (예: `ifconfig | grep inet`)
+2. `client/local.properties`에서 `LIVEKIT_TOKEN_SERVER_URL` 업데이트
+3. `livekit-voice-server/.env`에서 `LIVEKIT_URL` 업데이트
+4. Docker 컨테이너 재시작: `docker-compose up -d`
+5. 포트 접근 확인:
+   - `nc -zv <PC_IP> 8081` (Token Server)
+   - `nc -zv <PC_IP> 7880` (LiveKit Server)
 
 ## 라이선스
 

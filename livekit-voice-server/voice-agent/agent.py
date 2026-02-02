@@ -81,9 +81,19 @@ class VoiceAgent:
         )
         logger.info("Audio track published")
 
-        # Set up event handlers
-        self.room.on("data_received", self._on_data_received)
-        self.room.on("participant_disconnected", self._on_participant_disconnected)
+        # Store target participant for later use
+        self._target_participant = participant
+
+        # Set up event handlers (use sync wrapper for async callbacks)
+        # livekit-rtc passes DataPacket object with: data, participant, kind, topic attributes
+        def on_data_received_sync(packet: rtc.DataPacket):
+            asyncio.create_task(self._on_data_received(packet))
+
+        def on_participant_disconnected_sync(p: rtc.RemoteParticipant):
+            asyncio.create_task(self._on_participant_disconnected(p))
+
+        self.room.on("data_received", on_data_received_sync)
+        self.room.on("participant_disconnected", on_participant_disconnected_sync)
 
         # Keep the agent running
         try:
@@ -92,15 +102,14 @@ class VoiceAgent:
         except asyncio.CancelledError:
             logger.info("Agent cancelled")
 
-    async def _on_data_received(
-        self,
-        data: bytes,
-        participant: rtc.RemoteParticipant,
-        kind: rtc.DataPacketKind,
-        topic: Optional[str] = None
-    ):
+    async def _on_data_received(self, packet: rtc.DataPacket):
         """Handle data received from client via Data Channel."""
         try:
+            # Extract data from packet
+            data = packet.data
+            participant_identity = packet.participant.identity if packet.participant else None
+            logger.info(f"Data received from {participant_identity}: {len(data)} bytes")
+
             message = json.loads(data.decode('utf-8'))
             msg_type = message.get("type")
 
@@ -119,7 +128,7 @@ class VoiceAgent:
                     # Process the message
                     self.is_interrupted = False
                     self.current_task = asyncio.create_task(
-                        self._process_message(text, participant)
+                        self._process_message(text, self._target_participant)
                     )
 
             elif msg_type == "interrupt":
@@ -131,32 +140,37 @@ class VoiceAgent:
 
             elif msg_type == "ping":
                 # Keep-alive ping
-                await self._send_data(participant, {"type": "pong"})
+                await self._send_data(self._target_participant, {"type": "pong"})
 
         except json.JSONDecodeError:
             logger.warning(f"Invalid JSON received: {data}")
         except Exception as e:
-            logger.error(f"Error handling data: {e}")
+            logger.error(f"Error handling data: {e}", exc_info=True)
 
     async def _process_message(self, text: str, participant: rtc.RemoteParticipant):
         """Process a text message and stream TTS response."""
+        logger.info(f"Processing message: {text}")
         self.is_speaking = True
         self.processed_sentence_ids.clear()
 
         try:
             # Notify client that processing started
+            logger.info("Sending processing status to client")
             await self._send_data(participant, {
                 "type": "status",
                 "status": "processing"
             })
 
-            # Build request payload
+            # Build request payload with correct prompt format for LLM server
+            # Format: <|start_header_id|>user<|end_header_id|>\n\n{text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n
+            formatted_prompt = f"<|start_header_id|>user<|end_header_id|>\n\n{text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+
             payload = {
-                "prompt": text,
+                "prompt": formatted_prompt,
                 "stream": True,
                 "tts": {
                     "enabled": True,
-                    "voiceName": "Kore"
+                    "voiceName": "ko-KR-Wavenet-A"
                 }
             }
 
@@ -165,6 +179,7 @@ class VoiceAgent:
                 payload["conversation_id"] = self.conversation_id
 
             # Stream from SSE server
+            logger.info(f"Calling SSE server: {SSE_SERVER_URL}")
             accumulated_text = ""
 
             async for event in self.sse_client.stream(payload):

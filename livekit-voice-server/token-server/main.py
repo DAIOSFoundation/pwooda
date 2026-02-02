@@ -6,6 +6,7 @@ LiveKit Token Server
 
 import os
 import logging
+from datetime import timedelta
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Header
@@ -113,7 +114,7 @@ async def create_token(
     ))
 
     # Set token TTL (1 hour)
-    token.with_ttl(3600)
+    token.with_ttl(timedelta(hours=1))
 
     # Add conversation_id to metadata if provided
     if request.conversation_id:

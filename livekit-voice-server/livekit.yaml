@@ -27,6 +27,11 @@ room:
   # Room will be deleted after all participants leave
   empty_timeout: 300  # 5 minutes
 
+# Agent settings (for LiveKit Agents Framework)
+agent:
+  enabled: true
+  region: ""
+
 # TURN server (disabled for local development)
 turn:
   enabled: false

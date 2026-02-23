@@ -26,10 +26,16 @@ pwooda/
 │   │   ├── main.py
 │   │   ├── requirements.txt
 │   │   └── Dockerfile
-│   └── voice-agent/             # AI 음성 에이전트 (Python)
-│       ├── main.py              # Agent 진입점
-│       ├── agent.py             # Voice Agent 로직
-│       ├── sse_client.py        # 기존 LLM/TTS 서버 연동
+│   ├── voice-agent/             # AI 음성 에이전트 (Python)
+│   │   ├── main.py              # Agent 진입점
+│   │   ├── agent.py             # Voice Agent 로직
+│   │   ├── sse_client.py        # 기존 LLM/TTS 서버 연동
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   └── twilio-bridge/           # Twilio 전화 ↔ AI 에이전트 브릿지
+│       ├── main.py              # FastAPI 서버 (Webhook + WebSocket)
+│       ├── stt_handler.py       # 서버 측 STT (Whisper + VAD)
+│       ├── audio_utils.py       # 오디오 변환 (PCM ↔ mulaw)
 │       ├── requirements.txt
 │       └── Dockerfile
 │
@@ -43,6 +49,13 @@ pwooda/
 - 클라이언트 측 STT (Google SpeechRecognizer)
 - 서버 측 LLM + TTS 스트리밍
 - 인터럽트(Barge-in) 지원
+
+### 전화 통화 ↔ AI 에이전트 (Twilio Bridge)
+- 일반 전화(PSTN)에서 AI 에이전트와 대화
+- Twilio Media Streams (WebSocket) 기반
+- 서버 측 STT: Faster Whisper + WebRTC VAD
+- 오디오 변환: PCM 24kHz ↔ mulaw 8kHz
+- SSL 지원 (Caddy 리버스 프록시)
 
 ### AI 서비스
 - 개인 맞춤형 일정 관리
@@ -207,6 +220,12 @@ curl -X POST http://localhost:8081/api/v1/livekit/token \
 - **Voice Agent**: LiveKit Agents Framework (Python)
 - **STT/LLM/TTS**: 기존 SSE 서버 연동
 
+### Twilio Bridge
+- **웹 서버**: FastAPI (Python)
+- **STT**: Faster Whisper (base 모델) + WebRTC VAD
+- **전화 연동**: Twilio Voice API + Media Streams
+- **SSL**: Caddy (자동 Let's Encrypt 인증서)
+
 ## 환경 변수
 
 ### Android 클라이언트 설정 (client/local.properties)
@@ -281,6 +300,12 @@ AUTH_SERVER_URL=https://api-llmops.banya.ai
 # 포트 8083 필수!
 SSE_SERVER_URL=http://210.109.53.87:8083/completion-with-tts
 SSE_AUTH_TOKEN=your_sse_auth_token
+
+# Twilio 설정 (전화 ↔ AI 에이전트)
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+1XXXXXXXXXX
+TWILIO_WEBHOOK_BASE_URL=https://twilio.yourdomain.com
 ```
 
 ### LiveKit 서버 설정 (livekit-voice-server/livekit.yaml)
@@ -328,10 +353,63 @@ turn:
 | 3478 | UDP | TURN/UDP |
 | 5349 | TCP | TURN/TLS |
 | 50000-50100 | UDP | WebRTC 미디어 |
+| 80 | TCP | HTTP (Caddy SSL 인증서 발급) |
+| 8082 | TCP | Twilio Bridge (내부, Caddy 경유) |
+
+## Twilio 전화 연동 설정
+
+### 전화 통화 흐름
+
+```
+일반 전화기 ──PSTN──► Twilio ──Webhook──► Caddy (SSL) ──► Twilio Bridge (:8082)
+                                                              │
+                                                              ├─ STT (Whisper)
+                                                              ├─ SSE 서버 (LLM + TTS)
+                                                              └─ 오디오 응답 ──► Twilio ──► 전화기
+```
+
+### Twilio 콘솔 설정
+
+1. Phone Numbers → Active Numbers → 번호 선택
+2. Voice Configuration:
+   - **A call comes in**: Webhook
+   - **URL**: `https://twilio.banya.ai/twilio/voice`
+   - **HTTP Method**: HTTP POST
+
+### Caddy SSL 리버스 프록시
+
+```
+# /etc/caddy/Caddyfile
+twilio.banya.ai {
+    reverse_proxy localhost:8082
+}
+```
+
+Caddy가 자동으로 Let's Encrypt SSL 인증서를 발급하고 갱신합니다.
+Twilio Media Streams는 `wss://` (SSL WebSocket)만 지원하므로 SSL이 필수입니다.
+
+### 주의사항
+
+- Twilio **Trial 계정**은 Verified Caller IDs에 등록된 번호에서만 전화 가능
+- 모든 번호에서 전화 수신하려면 Twilio 계정 업그레이드 필요
+- SSE 서버(`210.109.53.87:8083`)가 가동 중이어야 AI 응답 가능
 
 ## 변경 이력
 
 ### 2026-02-23
+- **GCP 프로덕션 서버 배포** (`34.64.224.230`, `live-call-agent-svr`)
+  - LiveKit Server v1.6.0, Redis, Token Server, Voice Agent, Twilio Bridge 가동
+  - `livekit.yaml`: `use_external_ip: true` 프로덕션 설정 적용
+  - LiveKit v1.6.0에서 `agent` 필드가 yaml에서 지원되지 않음 확인 (환경변수로 처리)
+- **Twilio 전화 ↔ AI 에이전트 연동 배포**
+  - Twilio Bridge 서비스 추가 (`:8082`, FastAPI + Whisper STT)
+  - Twilio Voice Webhook: `https://twilio.banya.ai/twilio/voice`
+  - Twilio Media Streams WebSocket: `wss://twilio.banya.ai/twilio/stream`
+- **Caddy SSL 리버스 프록시 설정**
+  - `twilio.banya.ai` → `localhost:8082` 리버스 프록시
+  - Let's Encrypt 자동 SSL 인증서 발급
+  - Twilio Media Streams가 `wss://`만 지원하므로 SSL 필수
+- **GCP 방화벽 포트 추가**: 80(HTTP), 443(HTTPS), 8082(Twilio Bridge)
 - **프로덕션 서버 IP 변경**: `LIVEKIT_TOKEN_SERVER_URL`을 GCP 신규 인스턴스로 변경
   - 기존: `http://34.64.109.59:8081`
   - 변경: `http://34.64.224.230:8081`

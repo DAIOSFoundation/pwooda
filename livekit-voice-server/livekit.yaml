@@ -1,4 +1,4 @@
-# LiveKit Server Configuration (Local Development)
+# LiveKit Server Configuration (Production)
 port: 7880
 
 rtc:
@@ -7,8 +7,8 @@ rtc:
   # UDP port range for WebRTC media
   port_range_start: 50000
   port_range_end: 50100
-  # For local development, use host IP
-  use_external_ip: false
+  # For production, use external IP
+  use_external_ip: true
 
 redis:
   address: redis:6379
@@ -27,11 +27,6 @@ room:
   # Room will be deleted after all participants leave
   empty_timeout: 300  # 5 minutes
 
-# Agent settings (for LiveKit Agents Framework)
-agent:
-  enabled: true
-  region: ""
-
-# TURN server (disabled for local development)
+# TURN server (disabled for production without NAT issues)
 turn:
   enabled: false

@@ -67,6 +67,10 @@ import android.media.audiofx.Visualizer
 import kotlin.math.sqrt
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.foundation.clickable
 
 // PCM16LE를 WAV로 변환하는 함수
 fun pcm16leToWav(pcmData: ByteArray, sampleRate: Int = 24000, channels: Int = 1): ByteArray {
@@ -191,6 +195,7 @@ fun VoiceChatScreen(
     var fallbackScheduled by remember { mutableStateOf(false) }
     var lastAudioFormat by remember { mutableStateOf<String?>(null) }
     var isWsConnecting by remember { mutableStateOf(false) }
+    var isCallInProgress by remember { mutableStateOf(false) }
     val mainHandler = remember { androidx.core.os.HandlerCompat.createAsync(android.os.Looper.getMainLooper()) }
     var lastRecognizedText by remember { mutableStateOf<String?>(null) }
     var playbackSessionId by remember { mutableStateOf(0) }
@@ -299,6 +304,75 @@ fun VoiceChatScreen(
     // LiveKit 연결 해제
     fun disconnectFromLiveKit() {
         roomManager.disconnect()
+    }
+
+    // Twilio 아웃바운드 콜 시작 (서버 API 호출)
+    fun initiateOutboundCall() {
+        scope.launch {
+            isCallInProgress = true
+            currentWorkflowStep = "전화 연결 중..."
+            isProcessing = true
+
+            try {
+                val baseUrl = BuildConfig.LIVEKIT_TOKEN_SERVER_URL
+                    .replace(":8081", ":8082")  // twilio-bridge 포트
+                val url = "$baseUrl/api/v1/call/initiate"
+
+                android.util.Log.d("VoiceChatScreen", "Initiating call via: $url")
+
+                withContext(Dispatchers.IO) {
+                    val client = okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .build()
+
+                    val jsonBody = org.json.JSONObject().apply {
+                        put("to", "+8201062904539")
+                    }
+
+                    val request = okhttp3.Request.Builder()
+                        .url(url)
+                        .post(
+                            jsonBody.toString()
+                                .toByteArray()
+                                .let { okhttp3.RequestBody.create(
+                                    "application/json".toMediaType(),
+                                    it
+                                ) }
+                        )
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    val responseBody = response.body?.string()
+
+                    android.util.Log.d("VoiceChatScreen", "Call response: ${response.code} - $responseBody")
+
+                    if (response.isSuccessful) {
+                        mainHandler.post {
+                            currentWorkflowStep = "전화가 곧 울립니다..."
+                            isProcessing = false
+                        }
+                    } else {
+                        mainHandler.post {
+                            currentWorkflowStep = "전화 연결 실패"
+                            isProcessing = false
+                            isCallInProgress = false
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("VoiceChatScreen", "Call initiation failed: ${e.message}")
+                currentWorkflowStep = ""
+                isProcessing = false
+                isCallInProgress = false
+            }
+        }
+    }
+
+    // Twilio 번호로 직접 전화 (인바운드 콜)
+    fun dialTwilioNumber() {
+        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+18312733281"))
+        context.startActivity(intent)
     }
 
     // 음성 인식 서비스 및 WebSocket 초기화
@@ -950,6 +1024,72 @@ fun VoiceChatScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
             )
+
+            // 전화 걸기 버튼들 (마이크 버튼 양 옆)
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(100.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 아웃바운드 콜 (AI가 나에게 전화)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    IconButton(
+                        onClick = { initiateOutboundCall() },
+                        enabled = !isCallInProgress,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                color = if (isCallInProgress) Color(0xFFE0E0E0) else Color(0xFF4CAF50),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Phone,
+                            contentDescription = "AI 전화 받기",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "AI 전화",
+                        color = Color.Gray,
+                        fontSize = 10.sp
+                    )
+                }
+
+                // 인바운드 콜 (내가 AI에게 전화)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    IconButton(
+                        onClick = { dialTwilioNumber() },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                color = Color(0xFF2196F3),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Phone,
+                            contentDescription = "AI에게 전화",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "직접 전화",
+                        color = Color.Gray,
+                        fontSize = 10.sp
+                    )
+                }
+            }
 
             // 마지막 음성 인식 결과 텍스트 (하단 고정 표시)
             if (!lastRecognizedText.isNullOrBlank()) {

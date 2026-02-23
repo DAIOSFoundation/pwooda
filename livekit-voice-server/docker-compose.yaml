@@ -54,5 +54,19 @@ services:
     depends_on:
       - livekit
 
+  # Twilio Bridge (Phone Call ↔ AI Agent)
+  twilio-bridge:
+    build: ./twilio-bridge
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER:-+18312733281}
+      - TWILIO_WEBHOOK_BASE_URL=${TWILIO_WEBHOOK_BASE_URL}
+      - SSE_SERVER_URL=${SSE_SERVER_URL:-http://210.109.53.87:8083/completion-with-tts}
+      - SSE_AUTH_TOKEN=${SSE_AUTH_TOKEN}
+
 volumes:
   redis-data:

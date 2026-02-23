@@ -249,9 +249,9 @@ LIVEKIT_TOKEN_SERVER_URL=http://192.168.1.100:8081
 LIVEKIT_USE_LIVEKIT=true
 ```
 
-**프로덕션**
+**프로덕션 (GCP)**
 ```properties
-LIVEKIT_TOKEN_SERVER_URL=https://api-llmops.banya.ai
+LIVEKIT_TOKEN_SERVER_URL=http://34.64.224.230:8081
 LIVEKIT_USE_LIVEKIT=true
 ```
 
@@ -330,6 +330,11 @@ turn:
 | 50000-50100 | UDP | WebRTC 미디어 |
 
 ## 변경 이력
+
+### 2026-02-23
+- **프로덕션 서버 IP 변경**: `LIVEKIT_TOKEN_SERVER_URL`을 GCP 신규 인스턴스로 변경
+  - 기존: `http://34.64.109.59:8081`
+  - 변경: `http://34.64.224.230:8081`
 
 ### 2026-02-03
 - **Token Server TTL 수정**: `token.with_ttl(3600)` → `token.with_ttl(timedelta(hours=1))`로 변경

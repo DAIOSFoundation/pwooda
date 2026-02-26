@@ -218,14 +218,18 @@ async def twilio_stream(websocket: WebSocket):
     is_processing = False
 
     async def send_audio_to_twilio(mulaw_data: bytes):
-        """Send mulaw audio back to Twilio via WebSocket."""
+        """Send mulaw audio back to Twilio via WebSocket with pacing."""
         if not stream_sid:
             return
 
-        # Split into 20ms chunks (640 bytes of mulaw at 8kHz)
-        chunks = chunk_audio(mulaw_data, chunk_size=640)
+        # Split into 20ms chunks (160 bytes of mulaw at 8kHz)
+        CHUNK_SIZE = 160  # 8000 Hz * 1 byte * 0.02s = 160 bytes per 20ms
+        chunks = chunk_audio(mulaw_data, chunk_size=CHUNK_SIZE)
 
-        for chunk in chunks:
+        # Send chunks with pacing to match real-time playback
+        # Send in batches of 10 chunks (200ms) with a small delay
+        BATCH_SIZE = 10
+        for i, chunk in enumerate(chunks):
             payload = base64.b64encode(chunk).decode("utf-8")
             message = {
                 "event": "media",
@@ -234,6 +238,9 @@ async def twilio_stream(websocket: WebSocket):
             }
             try:
                 await websocket.send_json(message)
+                # Pace every batch to avoid overwhelming Twilio buffer
+                if (i + 1) % BATCH_SIZE == 0:
+                    await asyncio.sleep(0.15)  # ~150ms per 200ms of audio
             except Exception as e:
                 logger.error(f"Error sending audio to Twilio: {e}")
                 return
@@ -251,7 +258,44 @@ async def twilio_stream(websocket: WebSocket):
         logger.info(f"Processing speech: {text}")
 
         # Build payload (same format as voice-agent)
+        system_prompt = (
+            "너는 한국어로 대답하는 서울 시립 복지 센터의 친절한 상담원 소희야.\n"
+            "1, 2, 3 과 같은 숫자는 대답에 사용하지 말아줘.\n"
+            "최대한 3문장 이내로 간단하게 대답해줘.\n"
+            "2026년에 추가된 복지 정책은 아래와 같으니 관련 질문엔 아래 내용을 참고해서 대답해.\n\n"
+            "[2026 대한민국 & 서울시 복지 정책 상세]\n"
+            "국민기초생활보장 (국가 공통)\n"
+            "생계급여: 사인 가구 기준 월 최대 이백칠만팔천 원 지급.\n"
+            "의료급여: 가상의 부양비 반영 제도 폐지 (실질 빈곤층 보호 강화).\n"
+            "재산 기준 완화: 생업 필수 차량 및 다자녀 가구 승용차는 수급권 탈락 요인에서 제외.\n"
+            "청년 소득공제: 대상 확대(삼십사세 이하), 공제액 상향(육십만 원).\n"
+            "위기 발굴: AI 기반 단전·단수 데이터 연동 시스템 및 '그냥드림 코너' 전국 운영.\n\n"
+            "생애주기별 지원 체계\n"
+            "아동(영세에서 구세): 아동수당 대상: 구세 미만 (비수도권 추가 지원).\n"
+            "인프라: 이십사시 야간 돌봄, 달빛어린이병원 백이십개소.\n"
+            "의료비: 이른둥이 최대 이천만 원 지원.\n"
+            "청년(십구세에서 삼십사세): 청년미래적금: 월 오십만 원 저축 시 육퍼센트 매칭 (중소기업 재직자 십이퍼센트 매칭).\n"
+            "군 복무 크레딧: 복무 전 기간 국민연금 가입 기간 인정.\n"
+            "주거: 서울시 청년 월세 지원 상시 신청제 전환.\n"
+            "노인(육십오세 이상): 연금: 부부 감액 제도 단계적 완화, 노령연금 감액 기준 소득 상향(오백구만 원).\n"
+            "통합지원: 이공이육년 삼월 이십칠일 시행 '의료·요양 지역 돌봄법'에 따라 자택 중심 통합 서비스 제공.\n\n"
+            "서울특별시 특화 정책\n"
+            "디딤돌소득(구 안심소득): 하후상박형 소득 보장 시범사업(약 천백가구) 실증 연구 단계.\n"
+            "서울형 기초보장: 중위소득 사십팔퍼센트 이하 대상. (일인: 사십일만 원 / 사인: 백삼만구천 원)\n"
+            "특징: 주거용 재산 가액에 따른 역차별 방지를 위해 소득·재산 분리 평가.\n"
+            "다자녀 지원 (이자녀 이상):\n"
+            "다둥이 행복카드: 공영주차장, 한강공원 등 공공시설 오십퍼센트 할인/면제.\n"
+            "장기전세주택: 가점 부여 및 최장 이십년 거주, 우선 매수권 부여.\n\n"
+            "생활 밀착형 서비스 (교통/중장년)\n"
+            "기후동행카드 (복지권종):\n"
+            "지하철·버스 삼십일권: 일반 육만이천원, 청년/다자녀 오만오천원, 저소득층 사만오천원.\n"
+            "따릉이 포함 삼십일권: 일반 육만오천원, 청년/다자녀 오만팔천원, 저소득층 사만팔천원.\n"
+            "중장년(사십세에서 육십사세): 오십플러스재단: 가치동행일자리(돌봄 파트너 등) 및 중장년 취업사관학교(AI 직무 교육) 운영."
+        )
+
         formatted_prompt = (
+            f"<|start_header_id|>system<|end_header_id|>\n\n"
+            f"{system_prompt}<|eot_id|>"
             f"<|start_header_id|>user<|end_header_id|>\n\n"
             f"{text}<|eot_id|>"
             f"<|start_header_id|>assistant<|end_header_id|>\n\n"
@@ -260,7 +304,9 @@ async def twilio_stream(websocket: WebSocket):
         payload = {
             "prompt": formatted_prompt,
             "stream": True,
-            "tts": {"enabled": True, "voiceName": "ko-KR-Wavenet-A"},
+            "n_predict": 256,
+            "temperature": 0.7,
+            "tts": {"enabled": True, "voiceName": "Sohee", "instruct": ""},
         }
 
         # Call SSE server in a thread
@@ -337,6 +383,9 @@ async def twilio_stream(websocket: WebSocket):
                 stream_sid = message["start"]["streamSid"]
                 call_sid = message["start"].get("callSid", "unknown")
                 logger.info(f"Stream started: streamSid={stream_sid}, callSid={call_sid}")
+
+                # Agent greets first when call connects
+                asyncio.create_task(process_speech("사용자가 전화를 걸었습니다. 친절하게 한국어로 인사하고 무엇을 도와드릴지 물어보세요."))
 
             elif event == "media":
                 # Decode mulaw audio from Twilio

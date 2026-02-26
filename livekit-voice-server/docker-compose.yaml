@@ -49,7 +49,7 @@ services:
       - LIVEKIT_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
-      - SSE_SERVER_URL=${SSE_SERVER_URL:-http://210.109.53.87/completion-with-tts}
+      - SSE_SERVER_URL=${SSE_SERVER_URL:-https://eu6l8rgf-8083.thundercompute.net/completion-with-tts}
       - SSE_AUTH_TOKEN=${SSE_AUTH_TOKEN}
     depends_on:
       - livekit
@@ -65,7 +65,7 @@ services:
       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
       - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER:-+18312733281}
       - TWILIO_WEBHOOK_BASE_URL=${TWILIO_WEBHOOK_BASE_URL}
-      - SSE_SERVER_URL=${SSE_SERVER_URL:-http://210.109.53.87:8083/completion-with-tts}
+      - SSE_SERVER_URL=${SSE_SERVER_URL:-https://eu6l8rgf-8083.thundercompute.net/completion-with-tts}
       - SSE_AUTH_TOKEN=${SSE_AUTH_TOKEN}
 
 volumes:

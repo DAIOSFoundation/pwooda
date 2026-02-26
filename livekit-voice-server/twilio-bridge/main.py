@@ -39,7 +39,7 @@ TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "+18312733281")
 TWILIO_WEBHOOK_BASE_URL = os.environ.get("TWILIO_WEBHOOK_BASE_URL", "")
 
 SSE_SERVER_URL = os.environ.get(
-    "SSE_SERVER_URL", "http://210.109.53.87:8083/completion-with-tts"
+    "SSE_SERVER_URL", "https://eu6l8rgf-8083.thundercompute.net/completion-with-tts"
 )
 SSE_AUTH_TOKEN = os.environ.get("SSE_AUTH_TOKEN", "")
 

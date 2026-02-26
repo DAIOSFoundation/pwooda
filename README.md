@@ -182,7 +182,7 @@ curl -X POST http://localhost:8081/api/v1/livekit/token \
 
 5. LLM/TTS 호출
    Voice Agent ──HTTP/SSE──► 기존 LLM-TTS 서버
-                              (210.109.53.87/completion-with-tts)
+                              (eu6l8rgf-8083.thundercompute.net/completion-with-tts)
 
    응답 형식:
    {"type": "text", "content": "..."}
@@ -296,9 +296,8 @@ LIVEKIT_URL=ws://192.168.1.100:7880
 # 인증 서버 URL (Token Server에서 access_token 검증용)
 AUTH_SERVER_URL=https://api-llmops.banya.ai
 
-# LLM-TTS 서버 URL (Voice Agent가 호출)
-# 포트 8083 필수!
-SSE_SERVER_URL=http://210.109.53.87:8083/completion-with-tts
+# LLM-TTS 서버 URL (Voice Agent + Twilio Bridge가 호출)
+SSE_SERVER_URL=https://eu6l8rgf-8083.thundercompute.net/completion-with-tts
 SSE_AUTH_TOKEN=your_sse_auth_token
 
 # Twilio 설정 (전화 ↔ AI 에이전트)
@@ -392,7 +391,7 @@ Twilio Media Streams는 `wss://` (SSL WebSocket)만 지원하므로 SSL이 필�
 
 - Twilio **Trial 계정**은 Verified Caller IDs에 등록된 번호에서만 전화 가능
 - 모든 번호에서 전화 수신하려면 Twilio 계정 업그레이드 필요
-- SSE 서버(`210.109.53.87:8083`)가 가동 중이어야 AI 응답 가능
+- SSE 서버(`eu6l8rgf-8083.thundercompute.net`)가 가동 중이어야 AI 응답 가능
 
 ## 변경 이력
 
@@ -430,6 +429,11 @@ Twilio Media Streams는 `wss://` (SSL WebSocket)만 지원하므로 SSL이 필�
 - **Voice Agent 이벤트 핸들러 수정**: async 콜백을 sync 래퍼로 감싸서 등록 (livekit-rtc 호환성)
 - **Voice Agent DataPacket 시그니처 수정**: `data_received` 이벤트가 `DataPacket` 객체를 전달하도록 수정
 - **SSE 서버 URL 포트 수정**: `http://210.109.53.87/completion-with-tts` → `http://210.109.53.87:8083/completion-with-tts`
+
+### 2026-02-26
+- **SSE 서버 URL 변경**: `http://210.109.53.87:8083` → `https://eu6l8rgf-8083.thundercompute.net` (ThunderCompute 클라우드)
+- SSE_AUTH_TOKEN 변경
+- docker-compose.yaml, voice-agent/agent.py, twilio-bridge/main.py 기본값 일괄 업데이트
 
 ### 실제 기기 테스트 체크리스트
 

@@ -27,7 +27,7 @@ Twilio를 통해 실제 전화 통화로 AI 에이전트(Gemini 기반)와 대�
 │  WebSocket /twilio/stream                                           │
 │  ┌──────────┐    ┌──────────┐    ┌────────────────────────────────┐ │
 │  │ mulaw→PCM │──▶│ VAD+STT  │──▶│ SSE Client (LLM+TTS)         │ │
-│  │ PCM→mulaw │◀──│ Whisper  │   │ → 210.109.53.87:8083          │ │
+│  │ PCM→mulaw │◀──│ Whisper  │   │ → eu6l8rgf-8083.thundercompute.net │ │
 │  └──────────┘    └──────────┘    └────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -226,7 +226,7 @@ https://twilio.yourdomain.com/twilio/voice
 
 ### AI 응답이 없음
 - `SSE_SERVER_URL`, `SSE_AUTH_TOKEN` 확인
-- SSE 서버 상태 확인: `curl http://210.109.53.87:8083/health`
+- SSE 서버 상태 확인: `curl https://eu6l8rgf-8083.thundercompute.net/health`
 - twilio-bridge 로그에서 STT 결과 확인
 
 ### 음성 인식이 안됨

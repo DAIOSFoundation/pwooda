@@ -20,7 +20,7 @@ from sse_client import SSEClient
 logger = logging.getLogger(__name__)
 
 # Configuration
-SSE_SERVER_URL = os.environ.get("SSE_SERVER_URL", "http://210.109.53.87/completion-with-tts")
+SSE_SERVER_URL = os.environ.get("SSE_SERVER_URL", "https://eu6l8rgf-8083.thundercompute.net/completion-with-tts")
 SSE_AUTH_TOKEN = os.environ.get("SSE_AUTH_TOKEN", "")
 
 

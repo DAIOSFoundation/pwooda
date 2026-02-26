@@ -112,8 +112,8 @@ LIVEKIT_URL=wss://livekit.yourdomain.com
 # 인증 서버 (기존 유지)
 AUTH_SERVER_URL=https://api-llmops.banya.ai
 
-# LLM-TTS 서버 (기존 유지)
-SSE_SERVER_URL=http://210.109.53.87:8083/completion-with-tts
+# LLM-TTS 서버
+SSE_SERVER_URL=https://eu6l8rgf-8083.thundercompute.net/completion-with-tts
 SSE_AUTH_TOKEN=your-sse-auth-token-here
 ```
 
@@ -262,7 +262,7 @@ nc -zv GCP_EXTERNAL_IP 8081
 
 ### SSE 서버 연결 실패
 - `SSE_SERVER_URL`, `SSE_AUTH_TOKEN` 확인
-- 네트워크 연결 테스트: `curl -v http://210.109.53.87:8083/health`
+- 네트워크 연결 테스트: `curl -v https://eu6l8rgf-8083.thundercompute.net/health`
 
 ---
 

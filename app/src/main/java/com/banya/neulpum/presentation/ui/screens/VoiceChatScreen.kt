@@ -201,8 +201,8 @@ fun VoiceChatScreen(
         val channelConfig = AudioFormat.CHANNEL_OUT_MONO
         val audioFormat = AudioFormat.ENCODING_PCM_16BIT
         val minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-        // 최적 버퍼: minBufferSize의 4배 (안정적인 스트리밍을 위한 충분한 버퍼)
-        val bufferSize = minBufferSize * 4
+        // 최적 버퍼: minBufferSize의 8배 (네트워크 지터 대비 충분한 내부 버퍼)
+        val bufferSize = minBufferSize * 8
         
         audioTrack = AudioTrack.Builder()
             .setAudioAttributes(
@@ -365,12 +365,12 @@ fun VoiceChatScreen(
                 var isFirstChunk = true
                 val preBufferList = mutableListOf<ByteArray>()
                 var totalBufferedBytes = 0
-                val preBufferThreshold = 30720 // 640ms = 80ms × 8개 (24000Hz * 2bytes * 0.64s)
+                val preBufferThreshold = 72000 // 1.5초 (24000Hz * 2bytes * 1.5s)
                 
                 // 청크 안정화: 80ms 단위로 모아서 write (서버에서 80ms로 전송)
                 val chunkAccumulator = mutableListOf<ByteArray>()
                 var accumulatedBytes = 0
-                val chunkWriteThreshold = 3840 // 80ms (24000Hz * 2bytes * 0.08s)
+                val chunkWriteThreshold = 9600 // 200ms (24000Hz * 2bytes * 0.2s) - 큰 단위로 write하여 끊김 방지
                 
                 for (chunk in audioChunkChannel) {
                     // 빈 배열이면 종료 신호
@@ -421,7 +421,14 @@ fun VoiceChatScreen(
                             android.util.Log.d("VoiceChatScreen", "Pre-buffering complete ($totalBufferedBytes bytes)")
                             isFirstChunk = false
                             
-                            // 먼저 버퍼링된 데이터를 모두 AudioTrack에 쓰기
+                            // 무음 패딩 삽입 (150ms) - AudioTrack play() 초기화 워밍업
+                            val silenceDurationMs = 150
+                            val silenceBytes = (24000 * 2 * silenceDurationMs / 1000)  // 24kHz, 16bit mono
+                            val silenceBuffer = ByteArray(silenceBytes)
+                            track.write(silenceBuffer, 0, silenceBuffer.size, AudioTrack.WRITE_BLOCKING)
+                            android.util.Log.d("VoiceChatScreen", "Silence padding written: $silenceBytes bytes (${silenceDurationMs}ms)")
+
+                            // 버퍼링된 데이터를 모두 AudioTrack에 쓰기
                             var totalWritten = 0
                             for (buffered in preBufferList) {
                                 var offset = 0
@@ -650,11 +657,32 @@ fun VoiceChatScreen(
             // 음성 녹음 FAB (하단 중앙)
             VoiceMicButton(
                 isRecording = isRecording,
+                isPlaying = isPlaying || isAwaitingResponse,
                 paddingValues = paddingValues,
                 onToggle = {
                 if (isRecording) {
+                    // 녹음 중 → 녹음 중지
                     isRecording = false
                     speechService?.cleanup()
+                } else if (isPlaying || isAwaitingResponse) {
+                    // 재생 중 또는 응답 대기 중 → 재생 중단 + 서버 세션 취소
+                    wsClient?.cancelCurrentSession()
+                    try {
+                        audioTrack?.pause()
+                        audioTrack?.flush()
+                    } catch (_: Exception) {}
+                    while (audioChunkChannel.tryReceive().isSuccess) { /* drop pending audio */ }
+                    // 빈 배열 전송 → 재생 루프 종료 신호
+                    audioChunkChannel.trySend(ByteArray(0))
+                    isPlaying = false
+                    audioLevel = 0f
+                    try { visualizer?.release() } catch (_: Exception) {}
+                    visualizer = null
+                    doneReceived = false
+                    fallbackScheduled = false
+                    isAwaitingResponse = false
+                    currentWorkflowStep = ""
+                    isProcessing = false
                 } else {
                     if (hasMicrophonePermission) {
                         // 소켓이 미연결 상태이면 우선 연결 시도

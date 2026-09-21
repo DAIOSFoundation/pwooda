@@ -21,21 +21,37 @@ import androidx.core.content.ContextCompat
 @Composable
 fun VoiceMicButton(
     isRecording: Boolean,
+    isPlaying: Boolean = false,
     paddingValues: PaddingValues,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val containerColor = when {
+        isRecording -> Color(0xFFEA4335) // 빨간색: 녹음 중
+        else -> Color(0xFF10A37F)        // 초록색: 대기 및 재생 중
+    }
+    val icon = when {
+        isRecording -> Icons.Filled.Stop
+        isPlaying -> Icons.Filled.Stop
+        else -> Icons.Filled.Mic
+    }
+    val contentDesc = when {
+        isRecording -> "녹음 중지"
+        isPlaying -> "재생 중지"
+        else -> "음성 입력"
+    }
+
     FloatingActionButton(
         onClick = onToggle,
         modifier = modifier
             .padding(bottom = 24.dp)
             .size(80.dp),
-        containerColor = if (isRecording) Color(0xFFEA4335) else Color(0xFF10A37F),
+        containerColor = containerColor,
         shape = CircleShape,
     ) {
         Icon(
-            imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
-            contentDescription = if (isRecording) "녹음 중지" else "음성 입력",
+            imageVector = icon,
+            contentDescription = contentDesc,
             tint = Color.White
         )
     }

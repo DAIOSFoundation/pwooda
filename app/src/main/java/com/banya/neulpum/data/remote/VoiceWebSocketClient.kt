@@ -145,6 +145,15 @@ class VoiceWebSocketClient(
         } catch (_: Exception) {}
     }
 
+    fun cancelCurrentSession() {
+        try {
+            val json = JSONObject()
+            json.put("type", "cancel")
+            webSocket?.send(json.toString())
+            android.util.Log.d("VoiceWebSocketClient", "Cancel message sent")
+        } catch (_: Exception) {}
+    }
+
     fun close() {
         // Graceful client close with NORMAL_CLOSURE
         try { webSocket?.close(1000, "client closing") } catch (_: Exception) {}

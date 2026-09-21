@@ -347,6 +347,10 @@ class AuthViewModel(
         }
     }
     
+    suspend fun resetPassword(email: String): Result<String> {
+        return authRepository.resetPassword(email)
+    }
+
     suspend fun checkEmail(email: String): Result<Boolean> {
         return authRepository.checkEmail(email)
     }

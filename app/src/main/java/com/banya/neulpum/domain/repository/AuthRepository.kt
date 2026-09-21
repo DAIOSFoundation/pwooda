@@ -17,6 +17,7 @@ interface AuthRepository {
     suspend fun clearUserSession(): Boolean
     suspend fun updateProfile(name: String?, currentPassword: String?, newPassword: String?): Result<User>
     suspend fun deleteAccount(password: String): Result<Boolean>
+    suspend fun resetPassword(email: String): Result<String>
     suspend fun checkEmail(email: String): Result<Boolean>
     suspend fun sendVerificationEmail(email: String): Result<Boolean>
     suspend fun verifyEmail(email: String, verificationCode: String): Result<Boolean>

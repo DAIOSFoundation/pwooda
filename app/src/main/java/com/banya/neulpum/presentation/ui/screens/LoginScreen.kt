@@ -66,6 +66,9 @@ fun LoginScreen(
     var showSnackbar by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf("") }
     var isSuccessSnackbar by remember { mutableStateOf(false) }
+    var showPasswordResetDialog by remember { mutableStateOf(false) }
+    var resetEmail by remember { mutableStateOf("") }
+    var isResettingPassword by remember { mutableStateOf(false) }
     
     val authState = authViewModel.authState
     val isLoading = authViewModel.isLoading
@@ -618,6 +621,22 @@ fun LoginScreen(
                         )
                     )
 
+                    // 비밀번호 규칙 검증 (8자 이상, 문자+숫자 조합)
+                    if (password.isNotEmpty()) {
+                        val isLengthValid = password.length >= 8
+                        val hasLetter = password.any { it.isLetter() }
+                        val hasDigit = password.any { it.isDigit() }
+
+                        if (!isLengthValid || !hasLetter || !hasDigit) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "비밀번호는 8자 이상이며, 문자와 숫자의 조합이어야 합니다.",
+                                color = Color(0xFFEA4335),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
                     val passwordMismatch = confirmPassword.isNotEmpty() && confirmPassword != password
                     if (passwordMismatch) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -748,7 +767,8 @@ fun LoginScreen(
                 enabled = run {
                     val basicConditions = !isLoading && email.isNotEmpty() && password.isNotEmpty()
                     val signupConditions = if (isSignupMode) {
-                        name.isNotEmpty() && confirmPassword.isNotEmpty() && confirmPassword == password && agreeToTerms && agreeToPrivacy && emailAvailable == true && isEmailVerified
+                        val isPasswordValid = password.length >= 8 && password.any { it.isLetter() } && password.any { it.isDigit() }
+                        name.isNotEmpty() && confirmPassword.isNotEmpty() && confirmPassword == password && isPasswordValid && agreeToTerms && agreeToPrivacy && emailAvailable == true && isEmailVerified
                     } else {
                         true
                     }
@@ -796,10 +816,137 @@ fun LoginScreen(
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center
             )
+
+            // 비밀번호 찾기 (로그인 모드에서만)
+            if (!isSignupMode) {
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = {
+                        resetEmail = email
+                        showPasswordResetDialog = true
+                    }
+                ) {
+                    Text(
+                        text = "비밀번호를 잊으셨나요?",
+                        color = Color(0xFF10A37F),
+                        fontSize = 14.sp
+                    )
+                }
+            }
         }
         }
     }
     
+    // 비밀번호 찾기 다이얼로그
+    if (showPasswordResetDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isResettingPassword) {
+                    showPasswordResetDialog = false
+                }
+            },
+            title = {
+                Text(
+                    text = "비밀번호 찾기",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "가입한 이메일로 임시 비밀번호를 보내드립니다.",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = { resetEmail = it },
+                        label = { Text("이메일", color = Color.Gray) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "이메일",
+                                tint = Color.Gray
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF10A37F),
+                            unfocusedBorderColor = Color.LightGray,
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            cursorColor = Color(0xFF10A37F)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        enabled = !isResettingPassword,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Done
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isResettingPassword = true
+                            try {
+                                val result = authViewModel.resetPassword(resetEmail)
+                                if (result.isSuccess) {
+                                    showPasswordResetDialog = false
+                                    snackbarMessage = result.getOrNull() ?: "임시 비밀번호가 이메일로 발송되었습니다."
+                                    isSuccessSnackbar = true
+                                    showSnackbar = true
+                                } else {
+                                    snackbarMessage = result.exceptionOrNull()?.message ?: "비밀번호 찾기에 실패했습니다."
+                                    isSuccessSnackbar = false
+                                    showSnackbar = true
+                                }
+                            } catch (e: Exception) {
+                                snackbarMessage = "오류가 발생했습니다: ${e.message}"
+                                isSuccessSnackbar = false
+                                showSnackbar = true
+                            } finally {
+                                isResettingPassword = false
+                            }
+                        }
+                    },
+                    enabled = resetEmail.isNotEmpty() && resetEmail.contains("@") && !isResettingPassword,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10A37F)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    if (isResettingPassword) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("발송 중...", color = Color.White)
+                    } else {
+                        Text("임시 비밀번호 발송", color = Color.White)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showPasswordResetDialog = false },
+                    enabled = !isResettingPassword
+                ) {
+                    Text("취소", color = Color.Gray)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     // 이용약관 스크린
     if (showTermsScreen) {
         TermsOfServiceScreen(

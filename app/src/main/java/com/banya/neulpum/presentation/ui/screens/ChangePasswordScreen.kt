@@ -57,7 +57,7 @@ fun ChangePasswordScreen(
     
     // 유효성 검사
     val isCurrentPasswordValid = currentPassword.isNotBlank()
-    val isNewPasswordValid = newPassword.length >= 6
+    val isNewPasswordValid = newPassword.length >= 8 && newPassword.any { it.isLetter() } && newPassword.any { it.isDigit() }
     val isConfirmPasswordValid = newPassword == confirmPassword && confirmPassword.isNotBlank()
     val isFormValid = isCurrentPasswordValid && isNewPasswordValid && isConfirmPasswordValid
     
@@ -165,7 +165,7 @@ fun ChangePasswordScreen(
                     OutlinedTextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        placeholder = { Text("새 비밀번호를 입력하세요 (6자 이상)", color = Color.Gray) },
+                        placeholder = { Text("새 비밀번호를 입력하세요 (8자 이상, 문자+숫자)", color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF10A37F),
@@ -190,7 +190,7 @@ fun ChangePasswordScreen(
                     
                     if (newPassword.isNotBlank() && !isNewPasswordValid) {
                         Text(
-                            text = "비밀번호는 6자 이상 입력해주세요",
+                            text = "비밀번호는 8자 이상이며, 문자와 숫자의 조합이어야 합니다.",
                             fontSize = 12.sp,
                             color = Color.Red
                         )

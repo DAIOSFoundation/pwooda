@@ -25,6 +25,9 @@ class AuthRemoteDataSource {
     suspend fun deleteAccount(authorization: String, password: String): Response<ApiResponse<Map<String, String>>> =
         api.deleteAccount(authorization, password)
     
+    suspend fun resetPassword(request: PasswordResetRequest): Response<ApiResponse<PasswordResetResponse>> =
+        api.resetPassword(request)
+
     suspend fun checkEmail(request: CheckEmailRequest): Response<ApiResponse<CheckEmailResponse>> =
         api.checkEmail(request)
     

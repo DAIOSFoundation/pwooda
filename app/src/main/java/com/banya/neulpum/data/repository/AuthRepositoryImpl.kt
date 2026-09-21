@@ -6,6 +6,7 @@ import android.util.Base64
 import com.banya.neulpum.data.datasource.AuthRemoteDataSource
 import com.banya.neulpum.data.remote.SignupApiRequest
 import com.banya.neulpum.data.remote.UserUpdateRequest
+import com.banya.neulpum.data.remote.PasswordResetRequest
 import com.banya.neulpum.data.remote.CheckEmailRequest
 import com.banya.neulpum.data.remote.SendVerificationEmailRequest
 import com.banya.neulpum.data.remote.VerifyEmailRequest
@@ -217,14 +218,36 @@ class AuthRepositoryImpl(
                     )
                 }
             } else {
-                // 에러 응답 처리
-                val errorMessage = when (response.code()) {
-                    400 -> "입력 정보가 올바르지 않습니다."
-                    409 -> "이미 존재하는 이메일입니다."
-                    500 -> "서버 오류가 발생했습니다."
-                    else -> "회원가입에 실패했습니다. (${response.code()})"
+                // 에러 응답 처리 - 서버 에러 코드 및 메시지 파싱
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    if (errorBody != null) {
+                        val json = org.json.JSONObject(errorBody)
+                        val errorObj = json.optJSONObject("error")
+                        val serverCode = errorObj?.optString("code", null)
+                        val serverMessage = errorObj?.optString("message", null)
+
+                        // 서버 에러 코드 기반 분기
+                        when (serverCode) {
+                            "1004" -> serverMessage ?: "비밀번호는 8자 이상이며, 문자와 숫자의 조합이어야 합니다."
+                            "1003" -> "이미 존재하는 이메일입니다."
+                            else -> serverMessage ?: "입력 정보가 올바르지 않습니다."
+                        }
+                    } else {
+                        when (response.code()) {
+                            409 -> "이미 존재하는 이메일입니다."
+                            500 -> "서버 오류가 발생했습니다."
+                            else -> "회원가입에 실패했습니다. (${response.code()})"
+                        }
+                    }
+                } catch (e: Exception) {
+                    when (response.code()) {
+                        409 -> "이미 존재하는 이메일입니다."
+                        500 -> "서버 오류가 발생했습니다."
+                        else -> "회원가입에 실패했습니다. (${response.code()})"
+                    }
                 }
-                
+
                 return AuthResponse(
                     success = false,
                     message = errorMessage
@@ -400,6 +423,28 @@ class AuthRepositoryImpl(
         }
     }
     
+    override suspend fun resetPassword(email: String): Result<String> {
+        return try {
+            val response = remote.resetPassword(PasswordResetRequest(email = email))
+
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                Result.success(apiResponse?.data?.message ?: "임시 비밀번호가 이메일로 발송되었습니다.")
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "알 수 없는 오류"
+                val errorMessage = try {
+                    val json = org.json.JSONObject(errorBody)
+                    json.optString("message", "비밀번호 찾기에 실패했습니다.")
+                } catch (e: Exception) {
+                    "비밀번호 찾기에 실패했습니다."
+                }
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun checkEmail(email: String): Result<Boolean> {
         return try {
             val response = remote.checkEmail(CheckEmailRequest(email = email))

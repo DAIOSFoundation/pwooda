@@ -36,6 +36,11 @@ interface AuthApiService {
         @Query("password") password: String
     ): Response<ApiResponse<Map<String, String>>>
     
+    @POST("users/password-reset")
+    suspend fun resetPassword(
+        @Body request: PasswordResetRequest
+    ): Response<ApiResponse<PasswordResetResponse>>
+
     @POST("users/check-email")
     suspend fun checkEmail(
         @Body request: CheckEmailRequest
@@ -116,6 +121,14 @@ data class UserUpdateRequest(
 
 data class UserDeleteRequest(
     val password: String
+)
+
+data class PasswordResetRequest(
+    val email: String
+)
+
+data class PasswordResetResponse(
+    val message: String
 )
 
 data class CheckEmailRequest(

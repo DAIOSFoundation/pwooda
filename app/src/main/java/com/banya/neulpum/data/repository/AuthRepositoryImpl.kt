@@ -84,12 +84,38 @@ class AuthRepositoryImpl(
                     )
                 }
             } else {
-                // 에러 응답 처리
-                val errorMessage = when (response.code()) {
-                    400 -> "이메일 또는 비밀번호가 올바르지 않습니다."
-                    401 -> "인증에 실패했습니다."
-                    500 -> "서버 오류가 발생했습니다."
-                    else -> "로그인에 실패했습니다. (${response.code()})"
+                // 에러 응답 처리 - 서버 에러 코드 및 메시지 파싱
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    if (errorBody != null) {
+                        val json = org.json.JSONObject(errorBody)
+                        val errorObj = json.optJSONObject("error")
+                        val serverCode = errorObj?.optString("code", null)
+                        val serverMessage = errorObj?.optString("message", null)
+
+                        // 서버 에러 코드 기반 분기
+                        when (serverCode) {
+                            "0002" -> "이메일 또는 비밀번호가 올바르지 않습니다."
+                            // 0000: Authorization 헤더 누락, 0003: Authorization 포맷 오류
+                            // 사용자 입력 문제가 아니므로 코드를 함께 노출해 원인을 구분할 수 있게 한다
+                            "0000", "0003" -> "로그인 요청이 올바르지 않습니다. ($serverCode)"
+                            else -> serverMessage ?: "로그인에 실패했습니다. (${response.code()})"
+                        }
+                    } else {
+                        when (response.code()) {
+                            400 -> "이메일 또는 비밀번호가 올바르지 않습니다."
+                            401 -> "인증에 실패했습니다."
+                            500 -> "서버 오류가 발생했습니다."
+                            else -> "로그인에 실패했습니다. (${response.code()})"
+                        }
+                    }
+                } catch (e: Exception) {
+                    when (response.code()) {
+                        400 -> "이메일 또는 비밀번호가 올바르지 않습니다."
+                        401 -> "인증에 실패했습니다."
+                        500 -> "서버 오류가 발생했습니다."
+                        else -> "로그인에 실패했습니다. (${response.code()})"
+                    }
                 }
                 
                 return AuthResponse(
